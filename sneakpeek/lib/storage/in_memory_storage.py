@@ -7,6 +7,7 @@ from threading import Lock
 from typing import Dict, Iterator, List
 
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunStatus
+from sneakpeek.lib.settings import Settings
 
 from .base import (ScraperNotFoundError, ScraperRunNotFoundError,
                    ScraperRunPingFinishedError, ScraperRunPingNotStartedError,
@@ -211,3 +212,7 @@ class InMemoryStorage(Storage):
                 return
             if self._can_acquire_lease(lease_name, owner_id):
                 del self._leases[lease_name]
+
+    @staticmethod
+    def from_settings(settings: Settings) -> Storage:
+        return InMemoryStorage()
