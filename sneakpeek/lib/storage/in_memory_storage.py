@@ -1,9 +1,9 @@
 import logging
+from asyncio import Lock
 from dataclasses import dataclass, field
 from datetime import datetime
 from itertools import count
 from queue import PriorityQueue
-from threading import Lock
 from typing import Dict, Iterator, List
 
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunStatus
@@ -64,7 +64,7 @@ class InMemoryStorage(Storage):
         return self._scrapers.get(id)
 
     async def create_scraper(self, scraper: Scraper) -> Scraper:
-        with self._lock.acquire():
+        async with self._lock:
             scraper.id = (
                 scraper.id if scraper.id or scraper.id > 0 else self._generate_id()
             )
@@ -76,24 +76,24 @@ class InMemoryStorage(Storage):
             return scraper
 
     async def update_scraper(self, scraper: Scraper) -> Scraper:
-        with self._lock.acquire():
+        async with self._lock:
             if scraper.id not in self._scrapers:
                 raise ScraperNotFoundError(scraper.id)
             self._scrapers[scraper.id] = scraper
             return scraper
 
     async def delete_scraper(self, id: int) -> Scraper:
-        with self._lock.acquire():
+        async with self._lock:
             if id not in self._scrapers:
                 raise ScraperNotFoundError(id)
             del self._scrapers[id]
 
     async def get_scraper_runs(self, id: int) -> List[ScraperRun]:
-        with self._lock.acquire():
+        async with self._lock:
             return self._scraper_runs.get(id, []).values()
 
     async def add_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
-        with self._lock.acquire():
+        async with self._lock:
             scraper_run.id = (
                 scraper_run.id
                 if scraper_run.id or scraper_run.id > 0
@@ -120,7 +120,7 @@ class InMemoryStorage(Storage):
             raise scraper_run
 
     async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
-        with self._lock.acquire():
+        async with self._lock:
             if scraper_run.scraper.id not in self._scrapers:
                 raise ScraperNotFoundError(scraper_run.scraper.id)
             if (
@@ -136,7 +136,7 @@ class InMemoryStorage(Storage):
         scraper_id: int,
         scraper_run_id: int,
     ) -> ScraperRun:
-        with self._lock.acquire():
+        async with self._lock:
             if scraper_id not in self._scrapers:
                 raise ScraperNotFoundError()
             if (
@@ -153,13 +153,13 @@ class InMemoryStorage(Storage):
             scraper_run.last_active_at = datetime.utcnow()
 
     async def dequeue_scraper_run(self) -> ScraperRun | None:
-        with self._lock.acquire():
+        async with self._lock:
             if self._scraper_runs_queue.empty():
                 return None
             return self._scraper_runs_queue.get().scraper_run
 
     async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
-        with self._lock.acquire():
+        async with self._lock:
             self._scraper_runs = {
                 scraper_id: {
                     scraper_run.id: scraper_run
@@ -171,7 +171,7 @@ class InMemoryStorage(Storage):
             }
 
     async def get_unfinished_scraper_runs(self, scraper_id: int) -> bool:
-        with self._lock.acquire():
+        async with self._lock:
             if scraper_id not in self._scrapers:
                 raise ScraperNotFoundError(scraper_id)
             return any(
@@ -195,7 +195,7 @@ class InMemoryStorage(Storage):
         owner_id: str,
         acquire_until: datetime,
     ) -> Lease | None:
-        with self._lock.acquire():
+        async with self._lock:
             if self._can_acquire_lease(lease_name, owner_id):
                 self._leases[lease_name] = Lease(
                     name=lease_name,
@@ -207,7 +207,7 @@ class InMemoryStorage(Storage):
         return None
 
     async def release_lease(self, lease_name: str, owner_id: str) -> None:
-        with self._lock.acquire():
+        async with self._lock:
             if lease_name not in self._leases:
                 return
             if self._can_acquire_lease(lease_name, owner_id):
