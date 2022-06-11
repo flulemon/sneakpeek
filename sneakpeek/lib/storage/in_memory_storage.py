@@ -9,9 +9,13 @@ from typing import Dict, Iterator, List
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunStatus
 from sneakpeek.lib.settings import Settings
 
-from .base import (ScraperNotFoundError, ScraperRunNotFoundError,
-                   ScraperRunPingFinishedError, ScraperRunPingNotStartedError,
-                   Storage)
+from .base import (
+    ScraperNotFoundError,
+    ScraperRunNotFoundError,
+    ScraperRunPingFinishedError,
+    ScraperRunPingNotStartedError,
+    Storage,
+)
 
 
 @dataclass(order=True)
@@ -55,9 +59,11 @@ class InMemoryStorage(Storage):
         return items[:max_items]
 
     async def get_scrapers(self) -> List[Scraper]:
-        return self._scrapers.values()
+        return list(self._scrapers.values())
 
     async def get_scraper(self, id: int) -> Scraper:
+        if id not in self._scrapers:
+            raise ScraperNotFoundError(id)
         return self._scrapers[id]
 
     async def maybe_get_scraper(self, id: int) -> Scraper | None:
@@ -66,7 +72,7 @@ class InMemoryStorage(Storage):
     async def create_scraper(self, scraper: Scraper) -> Scraper:
         async with self._lock:
             scraper.id = (
-                scraper.id if scraper.id or scraper.id > 0 else self._generate_id()
+                scraper.id if scraper.id and scraper.id > 0 else self._generate_id()
             )
             if scraper.id and scraper.id in self._scrapers:
                 self._logger.warn(
@@ -86,11 +92,13 @@ class InMemoryStorage(Storage):
         async with self._lock:
             if id not in self._scrapers:
                 raise ScraperNotFoundError(id)
+            scraper_to_delete = self._scrapers[id]
             del self._scrapers[id]
+            return scraper_to_delete
 
     async def get_scraper_runs(self, id: int) -> List[ScraperRun]:
         async with self._lock:
-            return self._scraper_runs.get(id, []).values()
+            return list(self._scraper_runs.get(id, {}).values())
 
     async def add_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
         async with self._lock:
