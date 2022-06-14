@@ -76,7 +76,7 @@ class Storage(ABC):
     async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
         raise NotImplementedError()
 
-    async def get_unfinished_scraper_runs(self, scraper_id: int) -> bool:
+    async def has_unfinished_scraper_runs(self, scraper_id: int) -> bool:
         raise NotImplementedError()
 
     async def maybe_acquire_lease(

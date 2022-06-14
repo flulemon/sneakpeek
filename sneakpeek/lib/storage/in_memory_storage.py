@@ -98,13 +98,15 @@ class InMemoryStorage(Storage):
 
     async def get_scraper_runs(self, id: int) -> List[ScraperRun]:
         async with self._lock:
+            if id not in self._scrapers:
+                raise ScraperNotFoundError(id)
             return list(self._scraper_runs.get(id, {}).values())
 
     async def add_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
         async with self._lock:
             scraper_run.id = (
                 scraper_run.id
-                if scraper_run.id or scraper_run.id > 0
+                if scraper_run.id and scraper_run.id > 0
                 else self._generate_id()
             )
             if scraper_run.scraper.id not in self._scrapers:
@@ -121,11 +123,11 @@ class InMemoryStorage(Storage):
             self._scraper_runs[scraper_run.scraper.id][scraper_run.id] = scraper_run
             self._scraper_runs_queue.put(
                 ScraperRunQueueItem(
-                    priority=int(scraper_run.priority),
+                    priority=scraper_run.priority.value,
                     scraper_run=scraper_run,
                 )
             )
-            raise scraper_run
+            return scraper_run
 
     async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
         async with self._lock:
@@ -138,6 +140,7 @@ class InMemoryStorage(Storage):
                 raise ScraperRunNotFoundError(scraper_run.id)
 
             self._scraper_runs[scraper_run.scraper.id][scraper_run.id] = scraper_run
+            return scraper_run
 
     async def ping_scraper_run(
         self,
@@ -164,7 +167,10 @@ class InMemoryStorage(Storage):
         async with self._lock:
             if self._scraper_runs_queue.empty():
                 return None
-            return self._scraper_runs_queue.get().scraper_run
+            pending_run = self._scraper_runs_queue.get().scraper_run
+            pending_run.status = ScraperRunStatus.STARTED
+            pending_run.started_at = datetime.utcnow()
+            return pending_run
 
     async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
         async with self._lock:
@@ -172,13 +178,15 @@ class InMemoryStorage(Storage):
                 scraper_id: {
                     scraper_run.id: scraper_run
                     for scraper_run in sorted(
-                        scraper_runs.values(), key=lambda item: item.id, reverse=True
+                        scraper_runs.values(),
+                        key=lambda item: item.id,
+                        reverse=True,
                     )[:keep_last]
                 }
-                for scraper_id, scraper_runs in self._scraper_runs
+                for scraper_id, scraper_runs in self._scraper_runs.items()
             }
 
-    async def get_unfinished_scraper_runs(self, scraper_id: int) -> bool:
+    async def has_unfinished_scraper_runs(self, scraper_id: int) -> bool:
         async with self._lock:
             if scraper_id not in self._scrapers:
                 raise ScraperNotFoundError(scraper_id)

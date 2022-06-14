@@ -3,6 +3,8 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+UNSET_ID: int = -1
+
 
 class ScraperSchedule(str, Enum):
     INACTIVE = "inactive"
