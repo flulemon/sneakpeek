@@ -3,7 +3,12 @@ from datetime import datetime
 
 import fastapi_jsonrpc as jsonrpc
 
-from sneakpeek.lib.models import ScraperRun, ScraperRunPriority, ScraperRunStatus
+from sneakpeek.lib.models import (
+    UNSET_ID,
+    ScraperRun,
+    ScraperRunPriority,
+    ScraperRunStatus,
+)
 from sneakpeek.lib.storage.base import Storage
 
 
@@ -22,12 +27,12 @@ class Queue:
         scraper_id: int,
         priority: ScraperRunPriority,
     ) -> ScraperRun:
-        scraper = self._storage.get_scraper(scraper_id)
-        unfinished_runs = self._storage.get_unfinished_scraper_runs(scraper.id)
-        if any(unfinished_runs):
+        scraper = await self._storage.get_scraper(scraper_id)
+        if await self._storage.has_unfinished_scraper_runs(scraper_id):
             raise ScraperHasActiveRunError()
-        return self._storage.add_scraper_run(
+        return await self._storage.add_scraper_run(
             ScraperRun(
+                id=UNSET_ID,
                 scraper=scraper,
                 status=ScraperRunStatus.PENDING,
                 priority=priority,
@@ -36,4 +41,4 @@ class Queue:
         )
 
     async def dequeue(self) -> ScraperRun | None:
-        return self._storage.dequeue_scraper_run()
+        return await self._storage.dequeue_scraper_run()

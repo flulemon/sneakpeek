@@ -21,6 +21,7 @@ from .base import (
 @dataclass(order=True)
 class ScraperRunQueueItem:
     priority: int
+    scraper_run_id: int
     scraper_run: ScraperRun = field(compare=False)
 
 
@@ -124,6 +125,7 @@ class InMemoryStorage(Storage):
             self._scraper_runs_queue.put(
                 ScraperRunQueueItem(
                     priority=scraper_run.priority.value,
+                    scraper_run_id=scraper_run.id,
                     scraper_run=scraper_run,
                 )
             )
@@ -194,7 +196,10 @@ class InMemoryStorage(Storage):
                 scraper_run
                 for scraper_run in self._scraper_runs.get(scraper_id, {}).values()
                 if scraper_run.status
-                in (ScraperRunStatus.STARTED, ScraperRunStatus.PENDING)
+                in (
+                    ScraperRunStatus.STARTED,
+                    ScraperRunStatus.PENDING,
+                )
             )
 
     def _can_acquire_lease(self, lease_name: str, owner_id: str) -> bool:

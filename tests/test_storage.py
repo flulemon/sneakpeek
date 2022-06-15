@@ -196,8 +196,8 @@ async def test_scraper_priority_queue_dequeue_order(storage: Storage):
     UTMOST_PRIORITY_DEQUEUED_1 = 4
     expected_dequeued_ids = [
         UTMOST_PRIORITY_DEQUEUED_1,
-        HIGH_PRIORITY_HIGHER_ID_DEQUEUED_2,
         HIGH_PRIORITY_LOWER_ID_DEQUEUED_3,
+        HIGH_PRIORITY_HIGHER_ID_DEQUEUED_2,
         NORMAL_PRIORITY_DEQUEUED_4,
         None,
     ]
