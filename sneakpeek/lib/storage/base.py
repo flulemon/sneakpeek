@@ -1,10 +1,10 @@
 from abc import ABC
-from datetime import datetime
+from datetime import timedelta
 from typing import List
 
 import fastapi_jsonrpc as jsonrpc
 
-from sneakpeek.lib.models import Lease, Scraper, ScraperRun
+from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
 
 
 class ScraperNotFoundError(jsonrpc.BaseError):
@@ -17,22 +17,12 @@ class ScraperRunNotFoundError(jsonrpc.BaseError):
     MESSAGE = "Scraper run not found"
 
 
-class ScraperRunPingNotStartedError(jsonrpc.BaseError):
-    CODE = 5002
-    MESSAGE = "Failed to ping not started scraper run"
-
-
-class ScraperRunPingFinishedError(jsonrpc.BaseError):
-    CODE = 5002
-    MESSAGE = "Tried to ping finished scraper run"
-
-
 class Storage(ABC):
     async def search_scrapers(
         self,
         name_filter: str | None = None,
         max_items: int | None = None,
-        last_id: int | None = None,
+        offset: int | None = None,
     ) -> List[Scraper]:
         raise NotImplementedError()
 
@@ -63,27 +53,23 @@ class Storage(ABC):
     async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
         raise NotImplementedError()
 
-    async def ping_scraper_run(
-        self,
-        scraper_id: int,
-        scraper_run_id: int,
-    ) -> ScraperRun:
+    async def get_scraper_run(self, scraper_id: int, scraper_run_id: int) -> ScraperRun:
         raise NotImplementedError()
 
-    async def dequeue_scraper_run(self) -> ScraperRun | None:
+    async def dequeue_scraper_run(
+        self,
+        priority: ScraperRunPriority,
+    ) -> ScraperRun | None:
         raise NotImplementedError()
 
     async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
-        raise NotImplementedError()
-
-    async def has_unfinished_scraper_runs(self, scraper_id: int) -> bool:
         raise NotImplementedError()
 
     async def maybe_acquire_lease(
         self,
         lease_name: str,
         owner_id: str,
-        acquire_until: datetime,
+        acquire_for: timedelta,
     ) -> Lease | None:
         raise NotImplementedError()
 

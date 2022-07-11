@@ -1,28 +1,13 @@
 import logging
 from asyncio import Lock
-from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import count
-from queue import PriorityQueue
 from typing import Dict, Iterator, List
 
-from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunStatus
+from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
 from sneakpeek.lib.settings import Settings
 
-from .base import (
-    ScraperNotFoundError,
-    ScraperRunNotFoundError,
-    ScraperRunPingFinishedError,
-    ScraperRunPingNotStartedError,
-    Storage,
-)
-
-
-@dataclass(order=True)
-class ScraperRunQueueItem:
-    priority: int
-    scraper_run_id: int
-    scraper_run: ScraperRun = field(compare=False)
+from .base import ScraperNotFoundError, ScraperRunNotFoundError, Storage
 
 
 class InMemoryStorage(Storage):
@@ -30,7 +15,7 @@ class InMemoryStorage(Storage):
         self._logger = logging.getLogger(__name__)
         self._scrapers: Dict[int, Scraper] = {}
         self._scraper_runs: Dict[int, Dict[int, ScraperRun]] = {}
-        self._scraper_runs_queue = PriorityQueue()
+        self._queues: Dict[ScraperRunPriority, List[ScraperRun]] = {}
         self._id_generator: Iterator[int] = count()
         self._lock = Lock()
         self._leases: Dict[str, Lease] = {}
@@ -44,15 +29,15 @@ class InMemoryStorage(Storage):
         self,
         name_filter: str | None = None,
         max_items: int | None = None,
-        last_id: int | None = None,
+        offset: int | None = None,
     ) -> List[Scraper]:
-        last_id = last_id or 0
+        offset = offset or 0
         name_filter = name_filter or ""
         items = sorted(
             [
                 item
                 for item in self._scrapers.values()
-                if name_filter in item.name and item.id > last_id
+                if name_filter in item.name and item.id > offset
             ],
             key=lambda item: item.id,
         )
@@ -76,7 +61,7 @@ class InMemoryStorage(Storage):
                 scraper.id if scraper.id and scraper.id > 0 else self._generate_id()
             )
             if scraper.id and scraper.id in self._scrapers:
-                self._logger.warn(
+                self._logger.warning(
                     f"Will rewrite existing scraper: {self._scrapers[scraper.id]} with {scraper}"
                 )
             self._scrapers[scraper.id] = scraper
@@ -117,18 +102,14 @@ class InMemoryStorage(Storage):
                 self._scraper_runs[scraper_run.scraper.id] = {}
 
             if scraper_run.id in self._scraper_runs[scraper_run.scraper.id]:
-                self._logger.warn(
+                self._logger.warning(
                     f"Will rewrite existing scraper run: {self._scraper_runs[scraper_run.scraper.id][scraper_run.id]} with {scraper_run}"
                 )
 
             self._scraper_runs[scraper_run.scraper.id][scraper_run.id] = scraper_run
-            self._scraper_runs_queue.put(
-                ScraperRunQueueItem(
-                    priority=scraper_run.priority.value,
-                    scraper_run_id=scraper_run.id,
-                    scraper_run=scraper_run,
-                )
-            )
+            if scraper_run.priority not in self._queues:
+                self._queues[scraper_run.priority] = []
+            self._queues[scraper_run.priority].append(scraper_run)
             return scraper_run
 
     async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
@@ -144,35 +125,25 @@ class InMemoryStorage(Storage):
             self._scraper_runs[scraper_run.scraper.id][scraper_run.id] = scraper_run
             return scraper_run
 
-    async def ping_scraper_run(
-        self,
-        scraper_id: int,
-        scraper_run_id: int,
-    ) -> ScraperRun:
+    async def get_scraper_run(self, scraper_id: int, scraper_run_id: int) -> ScraperRun:
         async with self._lock:
             if scraper_id not in self._scrapers:
-                raise ScraperNotFoundError()
+                raise ScraperNotFoundError(scraper_id)
             if (
                 not self._scraper_runs.get(scraper_id)
                 or scraper_run_id not in self._scraper_runs[scraper_id]
             ):
-                raise ScraperRunNotFoundError()
+                raise ScraperRunNotFoundError(scraper_run_id)
+            return self._scraper_runs[scraper_id][scraper_run_id]
 
-            scraper_run = self._scraper_runs[scraper_id][scraper_run_id]
-            if scraper_run.status == ScraperRunStatus.PENDING:
-                raise ScraperRunPingNotStartedError()
-            if scraper_run.status != ScraperRunStatus.STARTED:
-                raise ScraperRunPingFinishedError()
-            scraper_run.last_active_at = datetime.utcnow()
-
-    async def dequeue_scraper_run(self) -> ScraperRun | None:
+    async def dequeue_scraper_run(
+        self,
+        priority: ScraperRunPriority,
+    ) -> ScraperRun | None:
         async with self._lock:
-            if self._scraper_runs_queue.empty():
+            if not self._queues.get(priority):
                 return None
-            pending_run = self._scraper_runs_queue.get().scraper_run
-            pending_run.status = ScraperRunStatus.STARTED
-            pending_run.started_at = datetime.utcnow()
-            return pending_run
+            return self._queues[priority].pop(0)
 
     async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
         async with self._lock:
@@ -188,20 +159,6 @@ class InMemoryStorage(Storage):
                 for scraper_id, scraper_runs in self._scraper_runs.items()
             }
 
-    async def has_unfinished_scraper_runs(self, scraper_id: int) -> bool:
-        async with self._lock:
-            if scraper_id not in self._scrapers:
-                raise ScraperNotFoundError(scraper_id)
-            return any(
-                scraper_run
-                for scraper_run in self._scraper_runs.get(scraper_id, {}).values()
-                if scraper_run.status
-                in (
-                    ScraperRunStatus.STARTED,
-                    ScraperRunStatus.PENDING,
-                )
-            )
-
     def _can_acquire_lease(self, lease_name: str, owner_id: str) -> bool:
         existing_lease = self._leases.get(lease_name)
         return (
@@ -214,7 +171,7 @@ class InMemoryStorage(Storage):
         self,
         lease_name: str,
         owner_id: str,
-        acquire_until: datetime,
+        acquire_for: timedelta,
     ) -> Lease | None:
         async with self._lock:
             if self._can_acquire_lease(lease_name, owner_id):
@@ -222,7 +179,7 @@ class InMemoryStorage(Storage):
                     name=lease_name,
                     owner_id=owner_id,
                     acquired=datetime.utcnow(),
-                    acquired_until=acquire_until,
+                    acquired_until=datetime.utcnow() + acquire_for,
                 )
                 return self._leases[lease_name]
         return None
