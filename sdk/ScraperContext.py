@@ -91,7 +91,7 @@ class ScraperContext:
         **kwargs,
     ) -> aiohttp.ClientResponse:
         self._on_request(method, url, headers, **kwargs)
-        response = getattr(self.session, method)(
+        response = await getattr(self.session, method)(
             url,
             headers=headers,
             **kwargs,
