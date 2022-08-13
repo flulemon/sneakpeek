@@ -37,6 +37,7 @@ class Scraper(BaseModel):
     schedule_crontab: str | None
     handler: str
     config: str
+    schedule_priority: ScraperRunPriority = ScraperRunPriority.NORMAL
 
 
 class ScraperRun(BaseModel):
