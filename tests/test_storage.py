@@ -2,8 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 import pytest
-from fakeredis import AsyncFakeRedis
-from pytest_lazyfixture import lazy_fixture
+from fakeredis.aioredis import FakeRedis
 
 from sneakpeek.lib.models import (
     UNSET_ID,
@@ -17,9 +16,6 @@ from sneakpeek.lib.storage.base import ScraperNotFoundError, Storage
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
 from sneakpeek.lib.storage.redis_storage import RedisStorage
 
-# from redis.asyncio import Redis
-
-
 NON_EXISTENT_SCRAPER_ID = 10001
 
 
@@ -30,12 +26,12 @@ def in_memory_storage() -> Storage:
 
 @pytest.fixture
 def redis_storage() -> Storage:
-    return RedisStorage(AsyncFakeRedis())
+    return RedisStorage(FakeRedis())
 
 
 storages = [
-    # lazy_fixture(in_memory_storage.__name__),
-    lazy_fixture(redis_storage.__name__),
+    pytest.lazy_fixture(in_memory_storage.__name__),
+    pytest.lazy_fixture(redis_storage.__name__),
 ]
 
 
