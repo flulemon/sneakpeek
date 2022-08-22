@@ -39,11 +39,7 @@ class QueueABC(ABC):
     ) -> ScraperRun:
         raise NotImplementedError()
 
-    async def dequeue(
-        self,
-        scraper_id: int,
-        priority: ScraperRunPriority,
-    ) -> ScraperRun:
+    async def dequeue(self) -> ScraperRun:
         raise NotImplementedError()
 
     async def ping_scraper_run(
