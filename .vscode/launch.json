@@ -14,6 +14,22 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             }
+        },
+        {
+            "name": "Run all",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/sneakpeek/app.py",
+            "args": [
+                "--api",
+                "--scheduler",
+                "--worker",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         }
     ]
 }
