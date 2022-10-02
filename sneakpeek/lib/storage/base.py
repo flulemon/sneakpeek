@@ -2,19 +2,7 @@ from abc import ABC
 from datetime import timedelta
 from typing import List
 
-import fastapi_jsonrpc as jsonrpc
-
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
-
-
-class ScraperNotFoundError(jsonrpc.BaseError):
-    CODE = 5000
-    MESSAGE = "Scraper not found"
-
-
-class ScraperRunNotFoundError(jsonrpc.BaseError):
-    CODE = 5001
-    MESSAGE = "Scraper run not found"
 
 
 class Storage(ABC):

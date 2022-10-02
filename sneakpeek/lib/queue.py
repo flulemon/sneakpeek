@@ -3,8 +3,11 @@ from abc import ABC
 from datetime import datetime, timedelta
 from typing import List
 
-import fastapi_jsonrpc as jsonrpc
-
+from sneakpeek.lib.errors import (
+    ScraperHasActiveRunError,
+    ScraperRunPingFinishedError,
+    ScraperRunPingNotStartedError,
+)
 from sneakpeek.lib.models import (
     UNSET_ID,
     ScraperRun,
@@ -14,21 +17,6 @@ from sneakpeek.lib.models import (
 from sneakpeek.lib.storage.base import Storage
 
 DEFAULT_DEAD_TIMEOUT = timedelta(minutes=5)
-
-
-class ScraperHasActiveRunError(jsonrpc.BaseError):
-    CODE = 10000
-    MESSAGE = "Scraper has active runs"
-
-
-class ScraperRunPingNotStartedError(jsonrpc.BaseError):
-    CODE = 10001
-    MESSAGE = "Failed to ping not started scraper run"
-
-
-class ScraperRunPingFinishedError(jsonrpc.BaseError):
-    CODE = 10002
-    MESSAGE = "Tried to ping finished scraper run"
 
 
 class QueueABC(ABC):

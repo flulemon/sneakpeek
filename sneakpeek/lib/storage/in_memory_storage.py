@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 from itertools import count
 from typing import Dict, Iterator, List
 
+from sneakpeek.lib.errors import ScraperNotFoundError, ScraperRunNotFoundError
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
 from sneakpeek.lib.settings import Settings
 
-from .base import ScraperNotFoundError, ScraperRunNotFoundError, Storage
+from .base import Storage
 
 
 class InMemoryStorage(Storage):

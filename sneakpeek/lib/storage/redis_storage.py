@@ -3,6 +3,7 @@ from typing import List
 
 from redis.asyncio import Redis
 
+from sneakpeek.lib.errors import ScraperNotFoundError, ScraperRunNotFoundError
 from sneakpeek.lib.models import (
     Lease,
     Scraper,
@@ -10,11 +11,8 @@ from sneakpeek.lib.models import (
     ScraperRunPriority,
     ScraperRunStatus,
 )
-from sneakpeek.lib.storage.base import (
-    ScraperNotFoundError,
-    ScraperRunNotFoundError,
-    Storage,
-)
+
+from .base import Storage
 
 
 class RedisStorage(Storage):
