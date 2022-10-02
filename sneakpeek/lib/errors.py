@@ -24,3 +24,8 @@ class ScraperRunPingNotStartedError(jsonrpc.BaseError):
 class ScraperRunPingFinishedError(jsonrpc.BaseError):
     CODE = 10002
     MESSAGE = "Tried to ping finished scraper run"
+
+
+class UnknownScraperHandlerError(jsonrpc.BaseError):
+    CODE = 10002
+    MESSAGE = "Tried to ping finished scraper run"
