@@ -5,7 +5,7 @@ from typing import Dict
 
 import aiohttp
 
-from sdk.ScraperConfig import ScraperConfig
+from sneakpeek.config import ScraperConfig
 
 _Headers = Dict[str, str]
 
