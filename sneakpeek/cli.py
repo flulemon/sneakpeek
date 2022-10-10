@@ -4,12 +4,12 @@ import logging
 
 import uvicorn
 
-from sneakpeek.api.api import create_api
+from sneakpeek.api import create_api
 from sneakpeek.lib.queue import Queue
-from sneakpeek.lib.runner import Runner
-from sneakpeek.lib.scheduler import Scheduler
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
-from sneakpeek.lib.worker import Worker
+from sneakpeek.runner import Runner
+from sneakpeek.scheduler import Scheduler
+from sneakpeek.worker import Worker
 
 parser = argparse.ArgumentParser(
     description="sneakpeek - a toolbox for creating scrapers"
