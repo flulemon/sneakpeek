@@ -3,11 +3,14 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+from sneakpeek.config import ScraperConfig
+
 UNSET_ID: int = -1
 
 
 class ScraperSchedule(str, Enum):
     INACTIVE = "inactive"
+    EVERY_MINUTE = "every_minute"
     EVERY_HOUR = "every_hour"
     EVERY_DAY = "every_day"
     EVERY_WEEK = "every_week"
@@ -36,7 +39,7 @@ class Scraper(BaseModel):
     schedule: ScraperSchedule
     schedule_crontab: str | None
     handler: str
-    config: str
+    config: ScraperConfig
     schedule_priority: ScraperRunPriority = ScraperRunPriority.NORMAL
 
 

@@ -2,6 +2,11 @@ from datetime import datetime
 
 import pytest
 
+from sneakpeek.lib.errors import (
+    ScraperHasActiveRunError,
+    ScraperRunPingFinishedError,
+    ScraperRunPingNotStartedError,
+)
 from sneakpeek.lib.models import (
     UNSET_ID,
     Scraper,
@@ -9,12 +14,7 @@ from sneakpeek.lib.models import (
     ScraperRunStatus,
     ScraperSchedule,
 )
-from sneakpeek.lib.queue import (
-    Queue,
-    ScraperHasActiveRunError,
-    ScraperRunPingFinishedError,
-    ScraperRunPingNotStartedError,
-)
+from sneakpeek.lib.queue import Queue
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
 
