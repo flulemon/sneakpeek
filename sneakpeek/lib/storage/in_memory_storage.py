@@ -2,24 +2,25 @@ import logging
 from asyncio import Lock
 from datetime import datetime, timedelta
 from itertools import count
-from typing import Dict, Iterator, List
+from typing import Iterator
 
 from sneakpeek.lib.errors import ScraperNotFoundError, ScraperRunNotFoundError
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
-from sneakpeek.lib.settings import Settings
 
 from .base import Storage
 
 
 class InMemoryStorage(Storage):
-    def __init__(self) -> None:
+    def __init__(self, scrapers: list[Scraper] | None = None) -> None:
         self._logger = logging.getLogger(__name__)
-        self._scrapers: Dict[int, Scraper] = {}
-        self._scraper_runs: Dict[int, Dict[int, ScraperRun]] = {}
-        self._queues: Dict[ScraperRunPriority, List[ScraperRun]] = {}
+        self._scrapers: dict[int, Scraper] = {
+            scraper.id: scraper for scraper in scrapers or []
+        }
+        self._scraper_runs: dict[int, dict[int, ScraperRun]] = {}
+        self._queues: dict[ScraperRunPriority, list[ScraperRun]] = {}
         self._id_generator: Iterator[int] = count()
         self._lock = Lock()
-        self._leases: Dict[str, Lease] = {}
+        self._leases: dict[str, Lease] = {}
 
     def _generate_id(self) -> int:
         for id in self._id_generator:
@@ -31,7 +32,7 @@ class InMemoryStorage(Storage):
         name_filter: str | None = None,
         max_items: int | None = None,
         offset: int | None = None,
-    ) -> List[Scraper]:
+    ) -> list[Scraper]:
         offset = offset or 0
         name_filter = name_filter or ""
         items = sorted(
@@ -45,7 +46,7 @@ class InMemoryStorage(Storage):
         max_items = max_items if max_items and max_items > 0 else len(items)
         return items[:max_items]
 
-    async def get_scrapers(self) -> List[Scraper]:
+    async def get_scrapers(self) -> list[Scraper]:
         return list(self._scrapers.values())
 
     async def get_scraper(self, id: int) -> Scraper:
@@ -83,7 +84,7 @@ class InMemoryStorage(Storage):
             del self._scrapers[id]
             return scraper_to_delete
 
-    async def get_scraper_runs(self, id: int) -> List[ScraperRun]:
+    async def get_scraper_runs(self, id: int) -> list[ScraperRun]:
         async with self._lock:
             if id not in self._scrapers:
                 raise ScraperNotFoundError(id)
@@ -191,7 +192,3 @@ class InMemoryStorage(Storage):
                 return
             if self._can_acquire_lease(lease_name, owner_id):
                 del self._leases[lease_name]
-
-    @staticmethod
-    def from_settings(settings: Settings) -> Storage:
-        return InMemoryStorage()
