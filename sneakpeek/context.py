@@ -35,11 +35,13 @@ class ScraperContext:
     async def __aenter__(self) -> None:
         self._session = aiohttp.ClientSession()
         await self._session.__aenter__()
+        return self
 
     async def __aexit__(self, *args) -> None:
         if self._session:
             await self._session.__aexit__(*args)
             self._session = None
+        return self
 
     def _inject_headers(
         self,
@@ -91,7 +93,7 @@ class ScraperContext:
         **kwargs,
     ) -> aiohttp.ClientResponse:
         self._on_request(method, url, headers, **kwargs)
-        response = await getattr(self.session, method)(
+        response = await getattr(self._session, method)(
             url,
             headers=headers,
             **kwargs,
