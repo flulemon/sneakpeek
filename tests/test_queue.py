@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pytest
 
+from sneakpeek.config import ScraperConfig
 from sneakpeek.lib.errors import (
     ScraperHasActiveRunError,
     ScraperRunPingFinishedError,
@@ -38,7 +39,7 @@ def _get_scraper(name: str, id: int = UNSET_ID) -> Scraper:
         schedule=ScraperSchedule.CRONTAB,
         schedule_crontab=f"schedule_{name}",
         handler="handler_{name}",
-        config="config_{name}",
+        config=ScraperConfig(),
     )
 
 

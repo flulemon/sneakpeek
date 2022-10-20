@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 from fakeredis.aioredis import FakeRedis
 
+from sneakpeek.config import ScraperConfig
 from sneakpeek.lib.errors import ScraperNotFoundError
 from sneakpeek.lib.models import (
     UNSET_ID,
@@ -43,7 +44,7 @@ def _get_scraper(name: str, id: int = UNSET_ID) -> Scraper:
         schedule=ScraperSchedule.CRONTAB,
         schedule_crontab=f"schedule_{name}",
         handler=f"handler_{name}",
-        config=f"config_{name}",
+        config=ScraperConfig(),
     )
 
 
