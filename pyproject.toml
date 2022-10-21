@@ -1,10 +1,29 @@
 [tool.poetry]
 name = "sneakpeek"
 version = "0.1.0"
-description = ""
+description = "Tool box for creating scrapers, so that you only focus on scraping logic"
 authors = ["Dan Yazovsky <daniil.yazovsky@gmail.com>"]
-license = "MIT"
+maintainers = ["Dan Yazovsky <daniil.yazovsky@gmail.com>"]
+license = "BSD-3-Clause"
 readme = "README.md"
+classifiers = [
+    "Operating System :: OS Independent",
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Developers",
+    "Framework :: FastAPI",
+    "Framework :: Pydantic",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/flulemon/sneakpeek"
+"Bug Tracker" = "https://github.com/flulemon/sneakpeek/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10"
