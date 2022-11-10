@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import timedelta
 from typing import List
 
 import uvicorn
@@ -12,8 +13,10 @@ from sneakpeek.scheduler import Scheduler
 from sneakpeek.scraper import ScraperABC
 from sneakpeek.worker import Worker
 
-DEFAULT_API_PORT = 8080
+API_DEFAULT_PORT = 8080
 WORKER_DEFAULT_CONCURRENCY = 50
+SCHEDULER_DEFAULT_LEASE_DURATION = timedelta(minutes=1)
+SCHEDULER_DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
 
 
 class SneakpeekServer:
@@ -25,11 +28,18 @@ class SneakpeekServer:
         run_worker: bool = True,
         run_scheduler: bool = True,
         worker_max_concurrency: int = WORKER_DEFAULT_CONCURRENCY,
-        api_port: int = DEFAULT_API_PORT,
+        api_port: int = API_DEFAULT_PORT,
+        scheduler_storage_poll_delay: timedelta = SCHEDULER_DEFAULT_STORAGE_POLL_DELAY,
+        scheduler_lease_duration: timedelta = SCHEDULER_DEFAULT_LEASE_DURATION,
     ) -> None:
         self._storage = storage
         self._queue = Queue(self._storage)
-        self._scheduler = Scheduler(self._storage, self._queue)
+        self._scheduler = Scheduler(
+            self._storage,
+            self._queue,
+            storage_poll_frequency=scheduler_storage_poll_delay,
+            lease_duration=scheduler_lease_duration,
+        )
         self._runner = Runner(handlers, self._queue, self._storage)
         self._worker = Worker(
             self._runner,
@@ -58,6 +68,9 @@ class SneakpeekServer:
 
     async def stop(self) -> None:
         self._logger.info("Stopping sneakpeek server")
-        await self._scheduler.stop()
-        await self._worker.stop()
-        await self._api_server.stop()
+        if self._run_scheduler:
+            await self._scheduler.stop()
+        if self._run_worker:
+            await self._worker.stop()
+        if self._run_api:
+            await self._api_server.shutdown()

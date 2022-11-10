@@ -1,5 +1,6 @@
 import logging
 from abc import ABC
+from datetime import datetime
 from traceback import format_exc
 from typing import List
 
@@ -59,5 +60,6 @@ class Runner(RunnerABC):
             )
             run.status = ScraperRunStatus.FAILED
             run.result = str(e)
+        run.finished_at = datetime.utcnow()
         await self._storage.update_scraper_run(run)
         self._logger.info(f"Successfully executed {human_run_id}")

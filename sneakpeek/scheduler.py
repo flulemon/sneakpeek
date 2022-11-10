@@ -16,6 +16,7 @@ from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import Storage
 
 DEFAULT_LEASE_DURATION = timedelta(minutes=1)
+DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
 
 
 class SchedulerABC(ABC):
@@ -31,6 +32,7 @@ class Scheduler(SchedulerABC):
         self,
         storage: Storage,
         queue: QueueABC,
+        storage_poll_frequency: timedelta = DEFAULT_STORAGE_POLL_DELAY,
         lease_duration: timedelta = DEFAULT_LEASE_DURATION,
     ) -> None:
         self._lease_name = "sneakpeek:scheduler"
@@ -46,7 +48,7 @@ class Scheduler(SchedulerABC):
         self._scheduler.add_job(
             self._on_tick,
             trigger="interval",
-            seconds=10,
+            seconds=int(storage_poll_frequency.total_seconds()),
             id="scheduler:internal:on_tick",
             max_instances=1,
         )
@@ -97,6 +99,8 @@ class Scheduler(SchedulerABC):
                 return IntervalTrigger(days=30, start_date=start_date)
             case ScraperSchedule.EVERY_MINUTE:
                 return IntervalTrigger(minutes=1, start_date=start_date)
+            case ScraperSchedule.EVERY_SECOND:
+                return IntervalTrigger(seconds=1, start_date=start_date)
 
     def _remove_scraper_job(self, scraper) -> None:
         logging.info(f"Removing scraper enqueue job: {scraper}")

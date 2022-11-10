@@ -10,6 +10,7 @@ UNSET_ID: int = -1
 
 class ScraperSchedule(str, Enum):
     INACTIVE = "inactive"
+    EVERY_SECOND = "every_second"
     EVERY_MINUTE = "every_minute"
     EVERY_HOUR = "every_hour"
     EVERY_DAY = "every_day"
