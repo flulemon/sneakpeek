@@ -3,7 +3,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from sneakpeek.config import ScraperConfig
+from sneakpeek.scraper_config import ScraperConfig
 
 UNSET_ID: int = -1
 
