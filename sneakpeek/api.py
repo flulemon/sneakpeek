@@ -1,5 +1,3 @@
-from typing import List
-
 import fastapi_jsonrpc as jsonrpc
 from fastapi import Body
 
@@ -7,13 +5,13 @@ from sneakpeek.lib.errors import ScraperHasActiveRunError, ScraperNotFoundError
 from sneakpeek.lib.models import Scraper, ScraperRun, ScraperRunPriority
 from sneakpeek.lib.queue import Queue, QueueABC
 from sneakpeek.lib.storage.base import Storage
-from sneakpeek.scraper import ScraperABC
+from sneakpeek.scraper_handler import ScraperHandler
 
 
 def get_public_api_entrypoint(
     storage: Storage,
     queue: Queue,
-    handlers: List[ScraperABC],
+    handlers: list[ScraperHandler],
 ) -> jsonrpc.Entrypoint:
     entrypoint = jsonrpc.Entrypoint("/api/v1/jsonrpc")
 
@@ -22,11 +20,11 @@ def get_public_api_entrypoint(
         name_filter: str | None = Body(...),
         max_items: int | None = Body(...),
         last_id: int | None = Body(...),
-    ) -> List[Scraper]:
+    ) -> list[Scraper]:
         return await storage.search_scrapers(name_filter, max_items, last_id)
 
     @entrypoint.method()
-    async def get_scrapers() -> List[Scraper]:
+    async def get_scrapers() -> list[Scraper]:
         return await storage.get_scrapers()
 
     @entrypoint.method(errors=[ScraperNotFoundError])
@@ -53,11 +51,11 @@ def get_public_api_entrypoint(
         return await storage.delete_scraper(id)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
-    async def get_scraper_runs(scraper_id: int = Body(...)) -> List[ScraperRun]:
+    async def get_scraper_runs(scraper_id: int = Body(...)) -> list[ScraperRun]:
         return await storage.get_scraper_runs(scraper_id)
 
     @entrypoint.method()
-    async def get_scraper_handlers() -> List[str]:
+    async def get_scraper_handlers() -> list[str]:
         return [handler.name for handler in handlers]
 
     return entrypoint
@@ -66,7 +64,7 @@ def get_public_api_entrypoint(
 def create_api(
     storage: Storage,
     queue: QueueABC,
-    handlers: List[ScraperABC],
+    handlers: list[ScraperHandler],
 ) -> jsonrpc.API:
     app = jsonrpc.API()
     app.bind_entrypoint(get_public_api_entrypoint(storage, queue, handlers))
