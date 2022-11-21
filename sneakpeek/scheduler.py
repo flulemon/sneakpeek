@@ -1,5 +1,5 @@
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from asyncio import Lock
 from datetime import datetime, timedelta
 from traceback import format_exc
@@ -20,11 +20,13 @@ DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
 
 
 class SchedulerABC(ABC):
+    @abstractmethod
     async def start(self) -> None:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def stop(self) -> None:
-        raise NotImplementedError()
+        ...
 
 
 class Scheduler(SchedulerABC):
@@ -59,7 +61,7 @@ class Scheduler(SchedulerABC):
             self._logger.warning(f"Tried to enqueue unknown scraper: {scraper_id}")
             return
 
-        scraper_human_id = f"{scraper.id}:'{scraper.name}'"
+        scraper_human_id = f"'{scraper.name}'::{scraper.id}"
         self._logger.debug(f"Trying to enqueue scraper {scraper_human_id}")
         if not self._lease:
             self._logger.debug(
@@ -72,7 +74,7 @@ class Scheduler(SchedulerABC):
                 scraper.schedule_priority,
             )
             self._logger.info(
-                f"Successfully enqueued scraper {scraper_human_id}: {scraper_run}"
+                f"Successfully enqueued scraper {scraper_human_id}::{scraper_run.id}"
             )
         except Exception as e:
             self._logger.error(f"Failed to enqueue {scraper_human_id}: {e}")
