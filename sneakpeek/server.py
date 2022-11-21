@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from datetime import timedelta
-from typing import List
 
 import uvicorn
 
@@ -10,7 +9,8 @@ from sneakpeek.lib.queue import Queue
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.runner import Runner
 from sneakpeek.scheduler import Scheduler
-from sneakpeek.scraper import ScraperABC
+from sneakpeek.scraper_context import Plugin
+from sneakpeek.scraper_handler import ScraperHandler
 from sneakpeek.worker import Worker
 
 API_DEFAULT_PORT = 8080
@@ -22,7 +22,7 @@ SCHEDULER_DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
 class SneakpeekServer:
     def __init__(
         self,
-        handlers: List[ScraperABC],
+        handlers: list[ScraperHandler],
         storage: Storage,
         run_api: bool = True,
         run_worker: bool = True,
@@ -31,6 +31,7 @@ class SneakpeekServer:
         api_port: int = API_DEFAULT_PORT,
         scheduler_storage_poll_delay: timedelta = SCHEDULER_DEFAULT_STORAGE_POLL_DELAY,
         scheduler_lease_duration: timedelta = SCHEDULER_DEFAULT_LEASE_DURATION,
+        plugins: list[Plugin] | None = None,
     ) -> None:
         self._storage = storage
         self._queue = Queue(self._storage)
@@ -40,7 +41,7 @@ class SneakpeekServer:
             storage_poll_frequency=scheduler_storage_poll_delay,
             lease_duration=scheduler_lease_duration,
         )
-        self._runner = Runner(handlers, self._queue, self._storage)
+        self._runner = Runner(handlers, self._queue, self._storage, plugins)
         self._worker = Worker(
             self._runner,
             self._queue,

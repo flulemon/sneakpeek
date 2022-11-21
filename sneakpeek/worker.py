@@ -1,5 +1,5 @@
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from asyncio import AbstractEventLoop, Lock, get_running_loop, sleep
 from datetime import timedelta
 from traceback import format_exc
@@ -11,11 +11,13 @@ from sneakpeek.runner import RunnerABC
 
 
 class WorkerABC(ABC):
+    @abstractmethod
     async def start(self) -> None:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     async def stop(self) -> None:
-        raise NotImplementedError()
+        ...
 
 
 class Worker(WorkerABC):
