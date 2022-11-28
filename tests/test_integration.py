@@ -4,8 +4,6 @@ from unittest.mock import patch
 
 import pytest
 
-from sneakpeek.config import ScraperConfig
-from sneakpeek.context import ScraperContext
 from sneakpeek.lib.models import (
     Scraper,
     ScraperRunPriority,
@@ -15,7 +13,9 @@ from sneakpeek.lib.models import (
 from sneakpeek.lib.queue import Queue
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
-from sneakpeek.scraper import ScraperABC
+from sneakpeek.scraper_config import ScraperConfig
+from sneakpeek.scraper_context import ScraperContext
+from sneakpeek.scraper_handler import ScraperHandler
 from sneakpeek.server import SneakpeekServer
 
 SCRAPER_1_ID = 100000001
@@ -24,7 +24,7 @@ TEST_URL = "test_url"
 MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN = 3
 
 
-class TestScraper(ScraperABC):
+class TestScraper(ScraperHandler):
     @property
     def name(self) -> str:
         return "test_scraper_handler"
@@ -34,12 +34,12 @@ class TestScraper(ScraperABC):
 
 
 @pytest.fixture
-def handler() -> ScraperABC:
+def handler() -> ScraperHandler:
     return TestScraper()
 
 
 @pytest.fixture
-def storage(handler: ScraperABC) -> Storage:
+def storage(handler: ScraperHandler) -> Storage:
     return InMemoryStorage(
         scrapers=[
             Scraper(
@@ -61,7 +61,7 @@ def storage(handler: ScraperABC) -> Storage:
 
 
 @pytest.fixture
-def server_with_scheduler(handler: ScraperABC, storage: Storage) -> Queue:
+def server_with_scheduler(handler: ScraperHandler, storage: Storage) -> Queue:
     return SneakpeekServer(
         handlers=[handler],
         storage=storage,
@@ -71,7 +71,7 @@ def server_with_scheduler(handler: ScraperABC, storage: Storage) -> Queue:
 
 
 @pytest.fixture
-def server_with_worker_only(handler: ScraperABC, storage: Storage) -> Queue:
+def server_with_worker_only(handler: ScraperHandler, storage: Storage) -> Queue:
     return SneakpeekServer(
         handlers=[handler],
         storage=storage,
@@ -88,7 +88,7 @@ async def test_scraper_schedules_and_completes(
 ):
     try:
         await server_with_scheduler.start()
-        with patch("sneakpeek.context.ScraperContext.get") as mocked_request:
+        with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await asyncio.sleep(MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN)
             runs = await storage.get_scraper_runs(SCRAPER_1_ID)
             assert len(runs) > 0, "Expected scraper to be run at least once"
@@ -113,7 +113,7 @@ async def test_scraper_completes_on_request(
 ):
     try:
         await server_with_worker_only.start()
-        with patch("sneakpeek.context.ScraperContext.get") as mocked_request:
+        with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await server_with_worker_only._queue.enqueue(
                 SCRAPER_1_ID,
                 ScraperRunPriority.HIGH,
@@ -147,7 +147,7 @@ async def test_runs_are_executed_according_to_priority(
             ScraperRunPriority.UTMOST,
         )
         await server_with_worker_only.start()
-        with patch("sneakpeek.context.ScraperContext.get") as mocked_request:
+        with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await asyncio.sleep(3)
             high_pri_job = await storage.get_scraper_run(SCRAPER_1_ID, high_pri_job.id)
             utmost_pri_job = await storage.get_scraper_run(
