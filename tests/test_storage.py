@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import pytest
 from fakeredis.aioredis import FakeRedis
 
-from sneakpeek.config import ScraperConfig
 from sneakpeek.lib.errors import ScraperNotFoundError
 from sneakpeek.lib.models import (
     UNSET_ID,
@@ -17,6 +16,7 @@ from sneakpeek.lib.models import (
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
 from sneakpeek.lib.storage.redis_storage import RedisStorage
+from sneakpeek.scraper_config import ScraperConfig
 
 NON_EXISTENT_SCRAPER_ID = 10001
 

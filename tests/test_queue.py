@@ -2,7 +2,6 @@ from datetime import datetime
 
 import pytest
 
-from sneakpeek.config import ScraperConfig
 from sneakpeek.lib.errors import (
     ScraperHasActiveRunError,
     ScraperRunPingFinishedError,
@@ -18,6 +17,7 @@ from sneakpeek.lib.models import (
 from sneakpeek.lib.queue import Queue
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
+from sneakpeek.scraper_config import ScraperConfig
 
 NON_EXISTENT_SCRAPER_ID = 10001
 
