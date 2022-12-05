@@ -38,9 +38,10 @@ def configure_logging(level: int = logging.INFO):
     handler = logging.StreamHandler()
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d][%(scraper_run_human_name)s] - %(message)s"
+            "%(asctime)s][%(levelname)s][%(name)s:%(lineno)d][%(scraper_run_human_name)s] %(message)s"
         )
     )
     handler.addFilter(ScraperContextInjectingFilter())
     logger.addHandler(handler)
     logger.setLevel(level)
+    logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)
