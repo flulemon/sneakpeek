@@ -1,10 +1,10 @@
 import logging
-from traceback import format_exc
 from typing import Any
 
 import aiohttp
 from pydantic import BaseModel
 
+from sneakpeek.plugins.utils import parse_config_from_obj
 from sneakpeek.scraper_context import AfterResponsePlugin, BeforeRequestPlugin, Request
 
 
@@ -14,30 +14,27 @@ class RequestsLoggingPluginConfig(BaseModel):
 
 
 class RequestsLoggingPlugin(BeforeRequestPlugin, AfterResponsePlugin):
-    def __init__(self, config: RequestsLoggingPluginConfig | None = None) -> None:
-        self._default_config = config or RequestsLoggingPluginConfig()
+    def __init__(
+        self, default_config: RequestsLoggingPluginConfig | None = None
+    ) -> None:
+        self._default_config = default_config or RequestsLoggingPluginConfig()
         self._logger = logging.getLogger(__name__)
 
     @property
     def name(self) -> str:
-        return "requests_logging_plugin"
-
-    def _parse_config(self, config: Any | None) -> RequestsLoggingPluginConfig:
-        if not config:
-            return self._default_config
-        try:
-            return RequestsLoggingPluginConfig.parse_obj(config)
-        except Exception as e:
-            self._logger.warn(f"Failed to parse config for plugin '{self.name}': {e}")
-            self._logger.debug(f"Traceback: {format_exc()}")
-        return self._default_config
+        return "requests_logging"
 
     async def before_request(
         self,
         request: Request,
         config: Any | None,
     ) -> Request:
-        config = self._parse_config(config)
+        config = parse_config_from_obj(
+            config,
+            self.name,
+            RequestsLoggingPluginConfig,
+            self._default_config,
+        )
         if config.log_request:
             self._logger.info(
                 f"{request.method.upper()} {request.url}",
@@ -54,7 +51,12 @@ class RequestsLoggingPlugin(BeforeRequestPlugin, AfterResponsePlugin):
         response: aiohttp.ClientResponse,
         config: Any | None,
     ) -> aiohttp.ClientResponse:
-        config = self._parse_config(config)
+        config = parse_config_from_obj(
+            config,
+            self.name,
+            RequestsLoggingPluginConfig,
+            self._default_config,
+        )
         if config.log_response:
             response_body = await response.text()
             self._logger.info(
