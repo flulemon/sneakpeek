@@ -11,6 +11,7 @@ from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
+from sneakpeek.lib.errors import ScraperHasActiveRunError
 from sneakpeek.lib.models import Lease, Scraper, ScraperSchedule
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import Storage
@@ -76,6 +77,8 @@ class Scheduler(SchedulerABC):
             self._logger.info(
                 f"Successfully enqueued scraper {scraper_human_id}::{scraper_run.id}"
             )
+        except ScraperHasActiveRunError as e:
+            self._logger.debug(f"Failed to enqueue {scraper_human_id}: {e}")
         except Exception as e:
             self._logger.error(f"Failed to enqueue {scraper_human_id}: {e}")
             self._logger.debug(
@@ -113,7 +116,7 @@ class Scheduler(SchedulerABC):
         self, scraper: Scraper, remove_existing: bool
     ) -> None:
         logging.info(
-            f"{'Updating' if remove_existing else 'Adding'} scraper enqueue job: {scraper}"
+            f"{'Updating' if remove_existing else 'Adding'} scraper enqueue job: '{scraper.name}'::{scraper.id}"
         )
         job_id = f"scheduler:scraper:{scraper.id}"
         trigger = await self._get_scraper_trigger(scraper)
