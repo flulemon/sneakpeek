@@ -9,7 +9,6 @@ from sneakpeek.lib.models import Scraper, ScraperRun, ScraperRunStatus
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.logging import scraper_run_context
-from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import Plugin, ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
 
@@ -41,23 +40,23 @@ class Runner(RunnerABC):
             )
         return self._handlers[run.scraper.handler]
 
-    def _build_context(self, config: ScraperConfig) -> ScraperContext:
-        return ScraperContext(config, self._plugins)
-
     async def run(self, run: ScraperRun) -> None:
         with scraper_run_context(run):
             self._logger.info("Starting scraper")
+            context = ScraperContext(run.scraper.config, self._plugins)
             try:
+                await context.start_session()
                 await self._queue.ping_scraper_run(run.scraper.id, run.id)
                 handler = self._get_handler(run)
-                async with self._build_context(run.scraper.config) as context:
-                    run.result = await handler.run(context)
+                run.result = await handler.run(context)
                 run.status = ScraperRunStatus.SUCCEEDED
             except Exception as e:
                 self._logger.error(f"Failed to execute scraper with error: {e}")
                 self._logger.debug(f"Traceback: {format_exc()}")
                 run.status = ScraperRunStatus.FAILED
                 run.result = str(e)
+            finally:
+                await context.close()
             run.finished_at = datetime.utcnow()
             await self._storage.update_scraper_run(run)
             self._logger.info("Successfully executed scraper")

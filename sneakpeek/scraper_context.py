@@ -88,14 +88,14 @@ class ScraperContext:
             if isinstance(plugin, AfterResponsePlugin):
                 self._after_response_plugins.append(plugin)
 
-    async def __aenter__(self) -> None:
+    async def start_session(self) -> None:
         self._session = aiohttp.ClientSession()
         await self._session.__aenter__()
         return self
 
-    async def __aexit__(self, *args) -> None:
+    async def close(self) -> None:
         if self._session:
-            await self._session.__aexit__(*args)
+            await self._session.close()
             self._session = None
         return self
 
