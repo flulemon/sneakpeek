@@ -7,7 +7,7 @@ from typing import Iterator
 from sneakpeek.lib.errors import ScraperNotFoundError, ScraperRunNotFoundError
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
 
-from .base import Storage
+from .base import Storage, storage_request_latency
 
 
 class InMemoryStorage(Storage):
@@ -27,6 +27,9 @@ class InMemoryStorage(Storage):
             if id not in self._scrapers and id not in self._scraper_runs:
                 return id
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="search_scrapers"
+    ).time()
     async def search_scrapers(
         self,
         name_filter: str | None = None,
@@ -46,17 +49,23 @@ class InMemoryStorage(Storage):
         max_items = max_items if max_items and max_items > 0 else len(items)
         return items[:max_items]
 
+    @storage_request_latency.labels(storage="in_memory", method="get_scrapers").time()
     async def get_scrapers(self) -> list[Scraper]:
         return list(self._scrapers.values())
 
+    @storage_request_latency.labels(storage="in_memory", method="get_scraper").time()
     async def get_scraper(self, id: int) -> Scraper:
         if id not in self._scrapers:
             raise ScraperNotFoundError(id)
         return self._scrapers[id]
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="maybe_get_scraper"
+    ).time()
     async def maybe_get_scraper(self, id: int) -> Scraper | None:
         return self._scrapers.get(id)
 
+    @storage_request_latency.labels(storage="in_memory", method="create_scraper").time()
     async def create_scraper(self, scraper: Scraper) -> Scraper:
         async with self._lock:
             scraper.id = (
@@ -69,6 +78,7 @@ class InMemoryStorage(Storage):
             self._scrapers[scraper.id] = scraper
             return scraper
 
+    @storage_request_latency.labels(storage="in_memory", method="update_scraper").time()
     async def update_scraper(self, scraper: Scraper) -> Scraper:
         async with self._lock:
             if scraper.id not in self._scrapers:
@@ -76,6 +86,7 @@ class InMemoryStorage(Storage):
             self._scrapers[scraper.id] = scraper
             return scraper
 
+    @storage_request_latency.labels(storage="in_memory", method="delete_scraper").time()
     async def delete_scraper(self, id: int) -> Scraper:
         async with self._lock:
             if id not in self._scrapers:
@@ -84,12 +95,18 @@ class InMemoryStorage(Storage):
             del self._scrapers[id]
             return scraper_to_delete
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="get_scraper_runs"
+    ).time()
     async def get_scraper_runs(self, id: int) -> list[ScraperRun]:
         async with self._lock:
             if id not in self._scrapers:
                 raise ScraperNotFoundError(id)
             return list(self._scraper_runs.get(id, {}).values())
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="add_scraper_run"
+    ).time()
     async def add_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
         async with self._lock:
             scraper_run.id = (
@@ -114,6 +131,9 @@ class InMemoryStorage(Storage):
             self._queues[scraper_run.priority].append(scraper_run)
             return scraper_run
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="update_scraper_run"
+    ).time()
     async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
         async with self._lock:
             if scraper_run.scraper.id not in self._scrapers:
@@ -127,6 +147,9 @@ class InMemoryStorage(Storage):
             self._scraper_runs[scraper_run.scraper.id][scraper_run.id] = scraper_run
             return scraper_run
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="get_scraper_run"
+    ).time()
     async def get_scraper_run(self, scraper_id: int, scraper_run_id: int) -> ScraperRun:
         async with self._lock:
             if scraper_id not in self._scrapers:
@@ -138,6 +161,9 @@ class InMemoryStorage(Storage):
                 raise ScraperRunNotFoundError(scraper_run_id)
             return self._scraper_runs[scraper_id][scraper_run_id]
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="search_scrapers"
+    ).time()
     async def dequeue_scraper_run(
         self,
         priority: ScraperRunPriority,
@@ -147,6 +173,9 @@ class InMemoryStorage(Storage):
                 return None
             return self._queues[priority].pop(0)
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="delete_old_scraper_runs"
+    ).time()
     async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
         async with self._lock:
             self._scraper_runs = {
@@ -169,6 +198,9 @@ class InMemoryStorage(Storage):
             or existing_lease.owner_id == owner_id
         )
 
+    @storage_request_latency.labels(
+        storage="in_memory", method="maybe_acquire_lease"
+    ).time()
     async def maybe_acquire_lease(
         self,
         lease_name: str,
@@ -186,6 +218,7 @@ class InMemoryStorage(Storage):
                 return self._leases[lease_name]
         return None
 
+    @storage_request_latency.labels(storage="in_memory", method="release_lease").time()
     async def release_lease(self, lease_name: str, owner_id: str) -> None:
         async with self._lock:
             if lease_name not in self._leases:

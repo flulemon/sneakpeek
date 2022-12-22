@@ -2,6 +2,7 @@ import asyncio
 import logging
 from datetime import timedelta
 
+import prometheus_client
 import uvicorn
 
 from sneakpeek.api import create_api
@@ -14,6 +15,7 @@ from sneakpeek.scraper_handler import ScraperHandler
 from sneakpeek.worker import Worker
 
 API_DEFAULT_PORT = 8080
+METRICS_DEFAULT_PORT = 9090
 WORKER_DEFAULT_CONCURRENCY = 50
 SCHEDULER_DEFAULT_LEASE_DURATION = timedelta(minutes=1)
 SCHEDULER_DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
@@ -27,11 +29,13 @@ class SneakpeekServer:
         run_api: bool = True,
         run_worker: bool = True,
         run_scheduler: bool = True,
+        expose_metrics: bool = True,
         worker_max_concurrency: int = WORKER_DEFAULT_CONCURRENCY,
         api_port: int = API_DEFAULT_PORT,
         scheduler_storage_poll_delay: timedelta = SCHEDULER_DEFAULT_STORAGE_POLL_DELAY,
         scheduler_lease_duration: timedelta = SCHEDULER_DEFAULT_LEASE_DURATION,
         plugins: list[Plugin] | None = None,
+        metrics_port: int = METRICS_DEFAULT_PORT,
     ) -> None:
         self._storage = storage
         self._queue = Queue(self._storage)
@@ -56,6 +60,8 @@ class SneakpeekServer:
         self._run_api = run_api
         self._run_worker = run_worker
         self._run_scheduler = run_scheduler
+        self._expose_metrics = expose_metrics
+        self._metrics_port = metrics_port
 
     async def start(self) -> None:
         loop = asyncio.get_running_loop()
@@ -66,6 +72,8 @@ class SneakpeekServer:
             loop.create_task(self._worker.start())
         if self._run_api:
             loop.create_task(self._api_server.serve())
+        if self._expose_metrics:
+            prometheus_client.start_http_server(self._metrics_port)
 
     async def stop(self) -> None:
         self._logger.info("Stopping sneakpeek server")

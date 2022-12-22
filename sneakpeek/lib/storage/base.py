@@ -2,7 +2,17 @@ from abc import ABC
 from datetime import timedelta
 from typing import List
 
+from prometheus_client import Histogram
+
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
+
+storage_request_latency = Histogram(
+    name="storage_request_latency",
+    documentation="Time spent processing storage request",
+    namespace="sneakpeek",
+    subsystem="storage",
+    labelnames=["storage", "method"],
+)
 
 
 class Storage(ABC):
