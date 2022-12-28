@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from fakeredis.aioredis import FakeRedis
 
 from sneakpeek.lib.errors import (
     ScraperHasActiveRunError,
@@ -17,14 +18,30 @@ from sneakpeek.lib.models import (
 from sneakpeek.lib.queue import Queue
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
+from sneakpeek.lib.storage.redis_storage import RedisStorage
 from sneakpeek.scraper_config import ScraperConfig
 
 NON_EXISTENT_SCRAPER_ID = 10001
 
 
 @pytest.fixture
-def storage() -> Storage:
+def in_memory_storage() -> Storage:
     return InMemoryStorage()
+
+
+@pytest.fixture
+def redis_storage() -> Storage:
+    return RedisStorage(FakeRedis())
+
+
+@pytest.fixture(
+    params=[
+        pytest.lazy_fixture(in_memory_storage.__name__),
+        pytest.lazy_fixture(redis_storage.__name__),
+    ]
+)
+def storage(request) -> Storage:
+    return request.param
 
 
 @pytest.fixture
@@ -48,7 +65,11 @@ async def test_enqueue_dequeue(queue: Queue, storage: Storage):
     scraper = await storage.create_scraper(_get_scraper("test_enqueue_dequeue"))
     enqueued = await queue.enqueue(scraper.id, ScraperRunPriority.NORMAL)
     dequeued = await queue.dequeue()
-    assert enqueued == dequeued
+    assert dequeued is not None
+    assert dequeued.id == enqueued.id
+    assert dequeued.scraper.id == enqueued.scraper.id
+    assert dequeued.status == ScraperRunStatus.STARTED
+    assert dequeued.started_at is not None
 
 
 @pytest.mark.asyncio

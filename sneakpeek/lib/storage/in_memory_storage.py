@@ -18,7 +18,7 @@ class InMemoryStorage(Storage):
         }
         self._scraper_runs: dict[int, dict[int, ScraperRun]] = {}
         self._queues: dict[ScraperRunPriority, list[ScraperRun]] = {}
-        self._id_generator: Iterator[int] = count()
+        self._id_generator: Iterator[int] = count(1)
         self._lock = Lock()
         self._leases: dict[str, Lease] = {}
 

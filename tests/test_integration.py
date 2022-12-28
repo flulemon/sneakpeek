@@ -3,6 +3,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from fakeredis.aioredis import FakeRedis
 
 from sneakpeek.lib.models import (
     Scraper,
@@ -10,9 +11,9 @@ from sneakpeek.lib.models import (
     ScraperRunStatus,
     ScraperSchedule,
 )
-from sneakpeek.lib.queue import Queue
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
+from sneakpeek.lib.storage.redis_storage import RedisStorage
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
@@ -22,62 +23,82 @@ SCRAPER_1_ID = 100000001
 SCRAPER_2_ID = 100000002
 TEST_URL = "test_url"
 MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN = 3
+HANDLER_NAME = "test_scraper_handler"
 
 
 class TestScraper(ScraperHandler):
     @property
     def name(self) -> str:
-        return "test_scraper_handler"
+        return HANDLER_NAME
 
     async def run(self, context: ScraperContext) -> str:
         await context.get(TEST_URL)
 
 
 @pytest.fixture
-def handler() -> ScraperHandler:
-    return TestScraper()
+def scrapers() -> list[Scraper]:
+    return [
+        Scraper(
+            id=SCRAPER_1_ID,
+            name="active_scraper",
+            schedule=ScraperSchedule.EVERY_SECOND,
+            handler=HANDLER_NAME,
+            config=ScraperConfig(),
+        ),
+        Scraper(
+            id=SCRAPER_2_ID,
+            name="inactive_scraper",
+            schedule=ScraperSchedule.INACTIVE,
+            handler=HANDLER_NAME,
+            config=ScraperConfig(),
+        ),
+    ]
 
 
 @pytest.fixture
-def storage(handler: ScraperHandler) -> Storage:
-    return InMemoryStorage(
-        scrapers=[
-            Scraper(
-                id=SCRAPER_1_ID,
-                name="active_scraper",
-                schedule=ScraperSchedule.EVERY_SECOND,
-                handler=handler.name,
-                config=ScraperConfig(),
-            ),
-            Scraper(
-                id=SCRAPER_2_ID,
-                name="inactive_scraper",
-                schedule=ScraperSchedule.INACTIVE,
-                handler=handler.name,
-                config=ScraperConfig(),
-            ),
-        ]
-    )
+def in_memory_storage(scrapers: list[Scraper]) -> Storage:
+    return InMemoryStorage(scrapers=scrapers)
 
 
 @pytest.fixture
-def server_with_scheduler(handler: ScraperHandler, storage: Storage) -> Queue:
+def redis_storage(scrapers: list[Scraper]) -> Storage:
+    storage = RedisStorage(FakeRedis())
+    loop = asyncio.get_event_loop()
+    for scraper in scrapers:
+        loop.run_until_complete(storage.create_scraper(scraper))
+    return storage
+
+
+@pytest.fixture(
+    params=[
+        pytest.lazy_fixture(in_memory_storage.__name__),
+        pytest.lazy_fixture(redis_storage.__name__),
+    ]
+)
+def storage(request) -> Storage:
+    return request.param
+
+
+@pytest.fixture
+def server_with_scheduler(storage: Storage) -> SneakpeekServer:
     return SneakpeekServer(
-        handlers=[handler],
+        handlers=[TestScraper()],
         storage=storage,
         run_api=False,
         scheduler_storage_poll_delay=timedelta(seconds=1),
+        expose_metrics=False,
     )
 
 
 @pytest.fixture
-def server_with_worker_only(handler: ScraperHandler, storage: Storage) -> Queue:
+def server_with_worker_only(storage: Storage) -> SneakpeekServer:
     return SneakpeekServer(
-        handlers=[handler],
+        handlers=[TestScraper()],
         storage=storage,
         run_api=False,
         run_scheduler=False,
         worker_max_concurrency=1,
+        expose_metrics=False,
     )
 
 
@@ -118,7 +139,7 @@ async def test_scraper_completes_on_request(
                 SCRAPER_1_ID,
                 ScraperRunPriority.HIGH,
             )
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             runs = await storage.get_scraper_runs(SCRAPER_1_ID)
             assert len(runs) == 1, "Expected scraper to be run once"
             assert (

@@ -67,7 +67,7 @@ async def test_read_after_write(storage: Storage):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("storage", storages)
 async def test_get_scrapers(storage: Storage):
-    expected = [_get_scraper(f"test_get_scrapers_{i}", i) for i in range(10)]
+    expected = [_get_scraper(f"test_get_scrapers_{i}", i) for i in range(1, 10)]
     for item in expected:
         await storage.create_scraper(item)
 
