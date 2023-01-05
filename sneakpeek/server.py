@@ -1,6 +1,8 @@
 import asyncio
 import logging
 from datetime import timedelta
+from signal import SIGINT, SIGTERM
+from traceback import format_exc
 
 import prometheus_client
 import uvicorn
@@ -54,6 +56,7 @@ class SneakpeekServer:
         self._api_config = uvicorn.Config(
             create_api(self._storage, self._queue, handlers),
             port=api_port,
+            log_config=None,
         )
         self._api_server = uvicorn.Server(self._api_config)
         self._logger = logging.getLogger(__name__)
@@ -63,8 +66,10 @@ class SneakpeekServer:
         self._expose_metrics = expose_metrics
         self._metrics_port = metrics_port
 
-    async def start(self) -> None:
-        loop = asyncio.get_running_loop()
+    def serve(
+        self, loop: asyncio.AbstractEventLoop | None = None, blocking: bool = True
+    ) -> None:
+        loop = loop or asyncio.get_event_loop()
         self._logger.info("Starting sneakpeek server")
         if self._run_scheduler:
             loop.create_task(self._scheduler.start())
@@ -74,12 +79,23 @@ class SneakpeekServer:
             loop.create_task(self._api_server.serve())
         if self._expose_metrics:
             prometheus_client.start_http_server(self._metrics_port)
+        loop.create_task(self._install_signals())
+        if blocking:
+            loop.run_forever()
 
-    async def stop(self) -> None:
+    async def _install_signals(self) -> None:
+        loop = asyncio.get_running_loop()
+        for signal in [SIGINT, SIGTERM]:
+            loop.add_signal_handler(signal, self.stop, loop)
+
+    def stop(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
+        loop = loop or asyncio.get_event_loop()
+        loop.stop()
         self._logger.info("Stopping sneakpeek server")
-        if self._run_scheduler:
-            await self._scheduler.stop()
-        if self._run_worker:
-            await self._worker.stop()
-        if self._run_api:
-            await self._api_server.shutdown()
+        try:
+            if self._run_scheduler:
+                self._scheduler.stop()
+            if self._run_worker:
+                self._worker.stop()
+        except Exception:
+            self._logger.error(f"Failed to stop: {format_exc()}")

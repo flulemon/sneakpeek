@@ -108,7 +108,7 @@ async def test_scraper_schedules_and_completes(
     storage: Storage,
 ):
     try:
-        await server_with_scheduler.start()
+        server_with_scheduler.serve(blocking=False)
         with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await asyncio.sleep(MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN)
             runs = await storage.get_scraper_runs(SCRAPER_1_ID)
@@ -124,7 +124,7 @@ async def test_scraper_schedules_and_completes(
             ), "Expected scraper run to have finished ts"
             mocked_request.assert_awaited_with(TEST_URL)
     finally:
-        await server_with_scheduler.stop()
+        server_with_scheduler.stop()
 
 
 @pytest.mark.asyncio
@@ -133,7 +133,7 @@ async def test_scraper_completes_on_request(
     storage: Storage,
 ):
     try:
-        await server_with_worker_only.start()
+        server_with_worker_only.serve(blocking=False)
         with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await server_with_worker_only._queue.enqueue(
                 SCRAPER_1_ID,
@@ -150,7 +150,7 @@ async def test_scraper_completes_on_request(
             ), "Expected scraper run to have finished ts"
             mocked_request.assert_awaited_once_with(TEST_URL)
     finally:
-        await server_with_worker_only.stop()
+        server_with_worker_only.stop()
 
 
 @pytest.mark.asyncio
@@ -167,7 +167,7 @@ async def test_runs_are_executed_according_to_priority(
             SCRAPER_2_ID,
             ScraperRunPriority.UTMOST,
         )
-        await server_with_worker_only.start()
+        server_with_worker_only.serve(blocking=False)
         with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await asyncio.sleep(3)
             high_pri_job = await storage.get_scraper_run(SCRAPER_1_ID, high_pri_job.id)
@@ -180,4 +180,4 @@ async def test_runs_are_executed_according_to_priority(
             assert mocked_request.call_count == 2
             mocked_request.assert_awaited_with(TEST_URL)
     finally:
-        await server_with_worker_only.stop()
+        server_with_worker_only.stop()

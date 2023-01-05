@@ -1,5 +1,3 @@
-import asyncio
-
 from demo.demo_scraper import DemoScraper
 from sneakpeek.lib.models import Scraper, ScraperSchedule
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
@@ -35,7 +33,4 @@ server = SneakpeekServer(
 
 if __name__ == "__main__":
     configure_logging()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(server.start())
-    loop.run_forever()
-    loop.run_until_complete(server.stop())
+    server.serve()
