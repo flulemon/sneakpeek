@@ -2,17 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import List
 
-from prometheus_client import Histogram
-
 from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
-
-storage_request_latency = Histogram(
-    name="storage_request_latency",
-    documentation="Time spent processing storage request",
-    namespace="sneakpeek",
-    subsystem="storage",
-    labelnames=["storage", "method"],
-)
 
 
 class Storage(ABC):
@@ -74,6 +64,10 @@ class Storage(ABC):
 
     @abstractmethod
     async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
+        ...
+
+    @abstractmethod
+    async def get_queue_len(self, priority: ScraperRunPriority) -> int:
         ...
 
     @abstractmethod
