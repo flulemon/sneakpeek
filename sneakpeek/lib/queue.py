@@ -3,8 +3,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import List
 
-from prometheus_client import Histogram
-
 from sneakpeek.lib.errors import (
     ScraperHasActiveRunError,
     ScraperRunPingFinishedError,
@@ -17,17 +15,9 @@ from sneakpeek.lib.models import (
     ScraperRunStatus,
 )
 from sneakpeek.lib.storage.base import Storage
+from sneakpeek.metrics import count_invocations, measure_latency
 
 DEFAULT_DEAD_TIMEOUT = timedelta(minutes=5)
-
-
-queue_latency = Histogram(
-    name="queue_latency",
-    documentation="Time spent processing enqueuing a scraper run",
-    namespace="sneakpeek",
-    subsystem="queue",
-    labelnames=["method"],
-)
 
 
 class QueueABC(ABC):
@@ -41,6 +31,10 @@ class QueueABC(ABC):
 
     @abstractmethod
     async def dequeue(self) -> ScraperRun:
+        ...
+
+    @abstractmethod
+    async def get_queue_len(self, priority: ScraperRunPriority) -> int:
         ...
 
     @abstractmethod
@@ -64,7 +58,8 @@ class Queue:
         self._logger = logging.getLogger(__name__)
         self._dead_timeout = dead_timeout
 
-    @queue_latency.labels(method="enqueue").time()
+    @count_invocations(subsystem="queue")
+    @measure_latency(subsystem="queue")
     async def enqueue(
         self,
         scraper_id: int,
@@ -83,7 +78,8 @@ class Queue:
             )
         )
 
-    @queue_latency.labels(method="dequeue").time()
+    @count_invocations(subsystem="queue")
+    @measure_latency(subsystem="queue")
     async def dequeue(self) -> ScraperRun | None:
         for priority in ScraperRunPriority:
             dequeued = await self._storage.dequeue_scraper_run(priority)
@@ -93,7 +89,13 @@ class Queue:
                 return await self._storage.update_scraper_run(dequeued)
         return None
 
-    @queue_latency.labels(method="ping").time()
+    @count_invocations(subsystem="queue")
+    @measure_latency(subsystem="queue")
+    async def get_queue_len(self, priority: ScraperRunPriority) -> int:
+        return await self._storage.get_queue_len(priority)
+
+    @count_invocations(subsystem="queue")
+    @measure_latency(subsystem="queue")
     async def ping_scraper_run(
         self,
         scraper_id: int,
@@ -107,12 +109,13 @@ class Queue:
         scraper_run.last_active_at = datetime.utcnow()
         return await self._storage.update_scraper_run(scraper_run)
 
-    @queue_latency.labels(method="kill_dead_scraper_runs").time()
+    @count_invocations(subsystem="queue")
+    @measure_latency(subsystem="queue")
     async def kill_dead_scraper_runs(self, scraper_id: int) -> List[ScraperRun]:
         runs = await self._storage.get_scraper_runs(scraper_id)
         killed = []
         for run in runs:
-            if self._is_scraper_run_dead(run):
+            if await self._is_scraper_run_dead(run):
                 run.status = ScraperRunStatus.DEAD
                 run.finished_at = datetime.utcnow()
                 killed.append(await self._storage.update_scraper_run(run))
