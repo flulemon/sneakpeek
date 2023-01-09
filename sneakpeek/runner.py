@@ -4,13 +4,23 @@ from datetime import datetime
 from traceback import format_exc
 from typing import List
 
+from prometheus_client import Counter
+
 from sneakpeek.lib.errors import UnknownScraperHandlerError
 from sneakpeek.lib.models import Scraper, ScraperRun, ScraperRunStatus
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.logging import scraper_run_context
+from sneakpeek.metrics import count_invocations, delay_histogram
 from sneakpeek.scraper_context import Plugin, ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
+
+scraper_runs = Counter(
+    name="scraper_runs",
+    documentation="Scraper runs executed",
+    namespace="sneakpeek",
+    labelnames=["type"],
+)
 
 
 class RunnerABC(ABC):
@@ -40,7 +50,11 @@ class Runner(RunnerABC):
             )
         return self._handlers[run.scraper.handler]
 
+    @count_invocations(subsystem="scraper_runner")
     async def run(self, run: ScraperRun) -> None:
+        delay_histogram.labels(type="time_spent_in_queue").observe(
+            (datetime.utcnow() - run.created_at).total_seconds()
+        )
         with scraper_run_context(run):
             self._logger.info("Starting scraper")
             context = ScraperContext(run.scraper.config, self._plugins)
@@ -50,11 +64,13 @@ class Runner(RunnerABC):
                 handler = self._get_handler(run)
                 run.result = await handler.run(context)
                 run.status = ScraperRunStatus.SUCCEEDED
+                scraper_runs.labels(type="success").inc()
             except Exception as e:
                 self._logger.error(f"Failed to execute scraper with error: {e}")
                 self._logger.debug(f"Traceback: {format_exc()}")
                 run.status = ScraperRunStatus.FAILED
                 run.result = str(e)
+                scraper_runs.labels(type="failed").inc()
             finally:
                 await context.close()
             run.finished_at = datetime.utcnow()
