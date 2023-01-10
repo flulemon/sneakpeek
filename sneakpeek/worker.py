@@ -7,6 +7,7 @@ from typing import Dict
 
 from sneakpeek.lib.models import ScraperRun
 from sneakpeek.lib.queue import QueueABC
+from sneakpeek.metrics import count_invocations, measure_latency, replicas_gauge
 from sneakpeek.runner import RunnerABC
 
 
@@ -37,6 +38,7 @@ class Worker(WorkerABC):
         self._active: Dict[int, ScraperRun] = {}
         self._max_concurrency = max_concurrency
 
+    @count_invocations(subsystem="worker")
     async def _execute_scraper(self, scraper_run: ScraperRun) -> None:
         self._logger.info(f"Executing scraper run id={scraper_run.id}")
         try:
@@ -46,8 +48,11 @@ class Worker(WorkerABC):
             self._logger.debug(f"Failed to execute {scraper_run.id}: {format_exc()}")
         del self._active[scraper_run.id]
 
+    @measure_latency(subsystem="worker")
+    @count_invocations(subsystem="worker")
     async def _on_tick(self) -> None:
         async with self._lock:
+            replicas_gauge.labels(type="active_scrapers").set(len(self._active))
             if len(self._active) >= self._max_concurrency:
                 self._logger.debug(
                     f"Not dequeuing any tasks because worker has reached max concurrency,"
@@ -66,7 +71,15 @@ class Worker(WorkerABC):
 
     async def _worker_loop(self) -> None:
         while self._running:
-            await self._on_tick()
+            replicas_gauge.labels(type="worker").set(1)
+            try:
+                await self._on_tick()
+            except Exception as e:
+                self._logger.error(f"Worker on tick function failed: {e}")
+                self._logger.debug(
+                    f"Worker on tick function failed. Traceback: {format_exc()}"
+                )
+
             await sleep(timedelta(seconds=1).total_seconds())
 
     async def start(self) -> None:
@@ -76,6 +89,6 @@ class Worker(WorkerABC):
             self._loop = get_running_loop()
         self._loop.create_task(self._worker_loop())
 
-    async def stop(self) -> None:
+    def stop(self) -> None:
         self._logger.info(f"Stopping worker. There are {len(self._active)} jobs")
         self._running = False
