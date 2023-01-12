@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Lock
@@ -10,14 +11,24 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+from prometheus_client import Gauge
 
 from sneakpeek.lib.errors import ScraperHasActiveRunError
-from sneakpeek.lib.models import Lease, Scraper, ScraperSchedule
+from sneakpeek.lib.models import Lease, Scraper, ScraperRunPriority, ScraperSchedule
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import Storage
+from sneakpeek.metrics import count_invocations, measure_latency, replicas_gauge
 
 DEFAULT_LEASE_DURATION = timedelta(minutes=1)
 DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
+
+
+queue_length_gauge = Gauge(
+    name="queue_length",
+    documentation="Number of pending scraper runs",
+    namespace="sneakpeek",
+    labelnames=["priority"],
+)
 
 
 class SchedulerABC(ABC):
@@ -55,7 +66,24 @@ class Scheduler(SchedulerABC):
             id="scheduler:internal:on_tick",
             max_instances=1,
         )
+        self._max_kill_dead_runs_concurrency = 10
+        self._scheduler.add_job(
+            self._kill_dead_scraper_runs,
+            trigger="interval",
+            seconds=int(timedelta(minutes=1).total_seconds()),
+            id="scheduler:internal:kill_dead_runs",
+            max_instances=1,
+        )
+        self._scheduler.add_job(
+            self._export_queue_len,
+            trigger="interval",
+            seconds=int(timedelta(seconds=5).total_seconds()),
+            id="scheduler:internal:export_queue_len",
+            max_instances=1,
+        )
 
+    @measure_latency(subsystem="scheduler")
+    @count_invocations(subsystem="scheduler")
     async def _enqueue_scraper(self, scraper_id: int) -> None:
         scraper = self._scrapers.get(scraper_id)
         if not scraper:
@@ -112,6 +140,8 @@ class Scheduler(SchedulerABC):
         self._scheduler.remove_job(f"scheduler:scraper:{scraper.id}")
         del self._scrapers[scraper.id]
 
+    @measure_latency(subsystem="scheduler")
+    @count_invocations(subsystem="scheduler")
     async def _update_scraper_job(
         self, scraper: Scraper, remove_existing: bool
     ) -> None:
@@ -130,6 +160,8 @@ class Scheduler(SchedulerABC):
             args=(scraper.id,),
         )
 
+    @measure_latency(subsystem="scheduler")
+    @count_invocations(subsystem="scheduler")
     async def _update_scrapers_jobs(self) -> None:
         scrapers = await self._storage.get_scrapers()
         index = {scraper.id: scraper for scraper in scrapers}
@@ -143,24 +175,83 @@ class Scheduler(SchedulerABC):
             if scraper.id not in self._scrapers:
                 await self._update_scraper_job(scraper, remove_existing=False)
 
+    @measure_latency(subsystem="scheduler")
+    @count_invocations(subsystem="scheduler")
     async def _on_tick(self) -> None:
-        self._logger.debug("Starting scheduler update cycle")
-        self._logger.debug("Trying to acquire lease")
-        self._lease = await self._storage.maybe_acquire_lease(
-            self._lease_name,
-            self._owner_id,
-            self._lease_duration,
-        )
-        if self._lease:
-            self._logger.info(
-                f"Successfully acquired lease until {self._lease.acquired_until.strftime('%Y-%m-%d %H:%M:%S')}"
+        replicas_gauge.labels(type="total_scheduler").set(1)
+        try:
+            self._logger.debug("Starting scheduler update cycle")
+            self._logger.debug("Trying to acquire lease")
+            self._lease = await self._storage.maybe_acquire_lease(
+                self._lease_name,
+                self._owner_id,
+                self._lease_duration,
             )
-        await self._update_scrapers_jobs()
+            if self._lease:
+                replicas_gauge.labels(type="active_scheduler").set(1)
+                self._logger.info(
+                    f"Successfully acquired lease until {self._lease.acquired_until.strftime('%Y-%m-%d %H:%M:%S')}"
+                )
+            else:
+                replicas_gauge.labels(type="active_scheduler").set(0)
+            await self._update_scrapers_jobs()
+        except Exception as e:
+            self._logger.error(f"Scheduler on tick function failed: {e}")
+            self._logger.debug(
+                f"Scheduler on tick function failed. Traceback: {format_exc()}"
+            )
+
+    @measure_latency(subsystem="scheduler")
+    @count_invocations(subsystem="scheduler")
+    async def _kill_dead_scraper_runs(self):
+        if not self._lease:
+            return
+        try:
+            semaphore = asyncio.Semaphore(self._max_kill_dead_runs_concurrency)
+
+            async def kill_dead_runs(scraper_id):
+                async with semaphore:
+                    return await self._queue.kill_dead_scraper_runs(scraper_id)
+
+            scrapers = list(self._scrapers.keys())
+            self._logger.info(f"Killing dead runs for {len(scrapers)} scrapers")
+            kill_jobs = [kill_dead_runs(scraper) for scraper in scrapers]
+            results = await asyncio.gather(*kill_jobs, return_exceptions=True)
+            killed = sum(
+                [len(item) for item in results if not isinstance(item, Exception)]
+            )
+            failed = [item for item in results if isinstance(item, Exception)]
+            if failed:
+                self._logger.error(
+                    f"Failed to kill dead runs for {len(failed)} scrapers: {failed}"
+                )
+            if killed > 0:
+                self._logger.info(f"Successfully killed {killed} dead runs")
+        except Exception as e:
+            self._logger.error(f"Scheduler kill dead runs failed: {e}")
+            self._logger.debug(
+                f"Scheduler kill dead runs failed. Traceback: {format_exc()}"
+            )
+
+    @measure_latency(subsystem="scheduler")
+    @count_invocations(subsystem="scheduler")
+    async def _export_queue_len(self):
+        if not self._lease:
+            return
+        try:
+            for priority in ScraperRunPriority:
+                pending_runs = await self._queue.get_queue_len(priority)
+                queue_length_gauge.labels(priority=priority.name).set(pending_runs)
+        except Exception as e:
+            self._logger.error(f"Scheduler export queue length failed: {e}")
+            self._logger.debug(
+                f"Scheduler export queue length failed. Traceback: {format_exc()}"
+            )
 
     async def start(self) -> None:
         self._logger.info("Starting scheduler")
         self._scheduler.start()
 
-    async def stop(self) -> None:
+    def stop(self) -> None:
         self._logger.info("Stopping scheduler")
-        self._scheduler.pause()
+        self._scheduler.shutdown(wait=False)
