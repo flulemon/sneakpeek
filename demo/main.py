@@ -8,6 +8,10 @@ from sneakpeek.plugins.rate_limiter_plugin import (
 )
 from sneakpeek.plugins.requests_logging_plugin import RequestsLoggingPlugin
 from sneakpeek.plugins.robots_txt_plugin import RobotsTxtPlugin
+from sneakpeek.plugins.user_agent_injecter_plugin import (
+    UserAgentInjecterPlugin,
+    UserAgentInjecterPluginConfig,
+)
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.server import SneakpeekServer
 
@@ -28,6 +32,7 @@ server = SneakpeekServer(
         RequestsLoggingPlugin(),
         RobotsTxtPlugin(),
         RateLimiterPlugin(RateLimiterPluginConfig(max_rpm=60)),
+        UserAgentInjecterPlugin(UserAgentInjecterPluginConfig(use_external_data=False)),
     ],
 )
 
