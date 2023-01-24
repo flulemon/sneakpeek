@@ -1,0 +1,38 @@
+{
+  "name": "sneakpeek-front",
+  "version": "0.0.1",
+  "description": "A toolbox to create scrapers",
+  "productName": "Sneakpeek",
+  "author": "Dan Yazovsky <daniil.yazovsky@gmail.com>",
+  "private": true,
+  "scripts": {
+    "lint": "eslint --ext .js,.vue ./",
+    "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
+    "test": "echo \"No test specified\" && exit 0",
+    "dev": "quasar dev",
+    "build": "quasar build"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.0.0",
+    "axios": "^1.3.5",
+    "json-editor-vue": "^0.10.5",
+    "quasar": "^2.6.0",
+    "vanilla-jsoneditor": "^0.16.1",
+    "vue": "^3.0.0",
+    "vue-router": "^4.0.0"
+  },
+  "devDependencies": {
+    "@quasar/app-vite": "^1.0.0",
+    "autoprefixer": "^10.4.2",
+    "eslint": "^8.10.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-vue": "^9.0.0",
+    "postcss": "^8.4.14",
+    "prettier": "^2.5.1"
+  },
+  "engines": {
+    "node": "^18 || ^16 || ^14.19",
+    "npm": ">= 6.13.4",
+    "yarn": ">= 1.21.1"
+  }
+}
