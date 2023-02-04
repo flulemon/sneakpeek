@@ -105,7 +105,13 @@ class InMemoryStorage(Storage):
         async with self._lock:
             if id not in self._scrapers:
                 raise ScraperNotFoundError(id)
-            return list(self._scraper_runs.get(id, {}).values())
+            return list(
+                sorted(
+                    self._scraper_runs.get(id, {}).values(),
+                    key=lambda x: x.id,
+                    reverse=True,
+                )
+            )
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
