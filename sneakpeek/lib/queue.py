@@ -130,7 +130,7 @@ class Queue:
             scraper_run.created_at,
         ]
         for ts in activity_timestamps:
-            if ts and ts - datetime.utcnow() > self._dead_timeout:
+            if ts and datetime.utcnow() - ts > self._dead_timeout:
                 return True
         return False
 
