@@ -1,11 +1,23 @@
 import fastapi_jsonrpc as jsonrpc
 from fastapi import Body
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from sneakpeek.lib.errors import ScraperHasActiveRunError, ScraperNotFoundError
-from sneakpeek.lib.models import Scraper, ScraperRun, ScraperRunPriority
+from sneakpeek.lib.models import (
+    Scraper,
+    ScraperRun,
+    ScraperRunPriority,
+    ScraperSchedule,
+)
 from sneakpeek.lib.queue import Queue, QueueABC
 from sneakpeek.lib.storage.base import Storage
 from sneakpeek.scraper_handler import ScraperHandler
+
+
+class Priority(BaseModel):
+    name: str
+    value: int
 
 
 def get_public_api_entrypoint(
@@ -58,6 +70,17 @@ def get_public_api_entrypoint(
     async def get_scraper_handlers() -> list[str]:
         return [handler.name for handler in handlers]
 
+    @entrypoint.method()
+    async def get_schedules() -> list[str]:
+        return [schedule.value for schedule in ScraperSchedule]
+
+    @entrypoint.method()
+    async def get_priorities() -> list[Priority]:
+        return [
+            Priority(name=priority.name, value=priority.value)
+            for priority in ScraperRunPriority
+        ]
+
     return entrypoint
 
 
@@ -67,5 +90,11 @@ def create_api(
     handlers: list[ScraperHandler],
 ) -> jsonrpc.API:
     app = jsonrpc.API()
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.bind_entrypoint(get_public_api_entrypoint(storage, queue, handlers))
     return app
