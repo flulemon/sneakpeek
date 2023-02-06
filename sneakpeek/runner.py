@@ -6,7 +6,7 @@ from typing import List
 
 from prometheus_client import Counter
 
-from sneakpeek.lib.errors import UnknownScraperHandlerError
+from sneakpeek.lib.errors import ScraperRunPingFinishedError, UnknownScraperHandlerError
 from sneakpeek.lib.models import Scraper, ScraperRun, ScraperRunStatus
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import Storage
@@ -57,7 +57,11 @@ class Runner(RunnerABC):
         )
         with scraper_run_context(run):
             self._logger.info("Starting scraper")
-            context = ScraperContext(run.scraper.config, self._plugins)
+
+            async def ping_session():
+                await self._queue.ping_scraper_run(run.scraper.id, run.id)
+
+            context = ScraperContext(run.scraper.config, self._plugins, ping_session)
             try:
                 await context.start_session()
                 await self._queue.ping_scraper_run(run.scraper.id, run.id)
@@ -65,6 +69,12 @@ class Runner(RunnerABC):
                 run.result = await handler.run(context)
                 run.status = ScraperRunStatus.SUCCEEDED
                 scraper_runs.labels(type="success").inc()
+            except ScraperRunPingFinishedError as e:
+                self._logger.error(
+                    "Scraper run seems to be killed. Not overriding status"
+                )
+                run.result = str(e)
+                scraper_runs.labels(type="killed").inc()
             except Exception as e:
                 self._logger.error(f"Failed to execute scraper with error: {e}")
                 self._logger.debug(f"Traceback: {format_exc()}")
