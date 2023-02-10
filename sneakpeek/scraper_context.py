@@ -1,10 +1,15 @@
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Callable
 
 import aiohttp
 
+from sneakpeek.lib.errors import (
+    ScraperRunPingFinishedError,
+    ScraperRunPingNotStartedError,
+)
 from sneakpeek.scraper_config import ScraperConfig
 
 HttpHeaders = dict[str, str]
@@ -67,8 +72,11 @@ class ScraperContext:
         self,
         config: ScraperConfig,
         plugins: list[Plugin] | None = None,
+        ping_session_func: Callable | None = None,
     ) -> None:
         self.params = config.params
+        self.ping_session_func = ping_session_func
+        self._logger = logging.getLogger(__name__)
         self._plugins_configs = config.plugins or {}
         self._session: aiohttp.ClientSession | None = None
         self._before_request_plugins = []
@@ -121,6 +129,7 @@ class ScraperContext:
         return response
 
     async def _request(self, request: Request) -> aiohttp.ClientResponse:
+        await self.ping_session()
         request = await self._before_request(request)
         response = await getattr(self._session, request.method)(
             request.url,
@@ -128,7 +137,29 @@ class ScraperContext:
             **(request.kwargs or {}),
         )
         response = await self._after_response(request, response)
+        await self.ping_session()
         return response
+
+    async def ping_session(self) -> None:
+        if not self.ping_session_func:
+            self._logger.warning(
+                "Tried to ping scraper run, but the function to ping session is None"
+            )
+            return
+        try:
+            await self.ping_session_func()
+        except ScraperRunPingNotStartedError as e:
+            self._logger.error(
+                f"Failed to ping PENDING scraper run because due to some infra error: {e}"
+            )
+            raise
+        except ScraperRunPingFinishedError as e:
+            self._logger.error(
+                f"Failed to ping scraper run because seems like it's been killed: {e}"
+            )
+            raise
+        except Exception as e:
+            self._logger.error(f"Failed to ping scraper run: {e}")
 
     async def get(
         self,
