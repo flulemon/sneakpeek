@@ -21,6 +21,7 @@ from sneakpeek.metrics import count_invocations, measure_latency, replicas_gauge
 
 DEFAULT_LEASE_DURATION = timedelta(minutes=1)
 DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
+DEFAULT_RUNS_TO_KEEP = 100
 
 
 queue_length_gauge = Gauge(
@@ -48,6 +49,7 @@ class Scheduler(SchedulerABC):
         queue: QueueABC,
         storage_poll_frequency: timedelta = DEFAULT_STORAGE_POLL_DELAY,
         lease_duration: timedelta = DEFAULT_LEASE_DURATION,
+        runs_to_keep: int = 3,
     ) -> None:
         self._lease_name = "sneakpeek:scheduler"
         self._owner_id = str(uuid4())
@@ -79,6 +81,14 @@ class Scheduler(SchedulerABC):
             trigger="interval",
             seconds=int(timedelta(seconds=5).total_seconds()),
             id="scheduler:internal:export_queue_len",
+            max_instances=1,
+        )
+        self._runs_to_keep = runs_to_keep
+        self._scheduler.add_job(
+            self._delete_old_scraper_runs,
+            trigger="interval",
+            seconds=int(timedelta(minutes=10).total_seconds()),
+            id="scheduler:internal:delete_old_runs",
             max_instances=1,
         )
 
@@ -231,6 +241,21 @@ class Scheduler(SchedulerABC):
             self._logger.error(f"Scheduler kill dead runs failed: {e}")
             self._logger.debug(
                 f"Scheduler kill dead runs failed. Traceback: {format_exc()}"
+            )
+
+    @measure_latency(subsystem="scheduler")
+    @count_invocations(subsystem="scheduler")
+    async def _delete_old_scraper_runs(self):
+        if not self._lease:
+            return
+        try:
+            self._logger.info("Removing old scraper runs")
+            await self._storage.delete_old_scraper_runs(self._runs_to_keep)
+            self._logger.info("Successfully removed old scraper runs")
+        except Exception as e:
+            self._logger.error(f"Removing old scraper runs failed: {e}")
+            self._logger.debug(
+                f"Removing old scraper runs failed. Traceback: {format_exc()}"
             )
 
     @measure_latency(subsystem="scheduler")
