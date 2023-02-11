@@ -20,8 +20,5 @@ class DemoScraper(ScraperHandler):
 
     async def run(self, context: ScraperContext) -> str:
         params = DemoScraperParams.parse_obj(context.params)
-        self._logger.info(f"Starting demo scraper. Will download {params.url}")
-        result = await context.get(params.url)
-        text = await result.text()
-        self._logger.info(f"Downloaded: {text[:250]}")
-        return result.text()
+        response = await context.get(params.url)
+        return await response.text()
