@@ -50,7 +50,7 @@ class Worker(WorkerABC):
 
     @measure_latency(subsystem="worker")
     @count_invocations(subsystem="worker")
-    async def _on_tick(self) -> None:
+    async def _on_tick(self) -> bool:
         async with self._lock:
             replicas_gauge.labels(type="active_scrapers").set(len(self._active))
             if len(self._active) >= self._max_concurrency:
@@ -58,29 +58,31 @@ class Worker(WorkerABC):
                     f"Not dequeuing any tasks because worker has reached max concurrency,"
                     f" there are {len(self._active)} of active tasks"
                 )
-                return
+                return False
 
             dequeued = await self._queue.dequeue()
             if not dequeued:
                 self._logger.debug("No pending tasks in the queue")
-                return
+                return False
 
             self._logger.info(f"Dequeued a job with id={dequeued.id}")
             self._active[dequeued.id] = dequeued
             self._loop.create_task(self._execute_scraper(dequeued))
+            return True
 
     async def _worker_loop(self) -> None:
         while self._running:
             replicas_gauge.labels(type="worker").set(1)
+            dequeued_anything = False
             try:
-                await self._on_tick()
+                dequeued_anything = await self._on_tick()
             except Exception as e:
                 self._logger.error(f"Worker on tick function failed: {e}")
                 self._logger.debug(
                     f"Worker on tick function failed. Traceback: {format_exc()}"
                 )
-
-            await sleep(timedelta(seconds=1).total_seconds())
+            if not dequeued_anything:
+                await sleep(timedelta(seconds=1).total_seconds())
 
     async def start(self) -> None:
         self._logger.info("Starting worker")
