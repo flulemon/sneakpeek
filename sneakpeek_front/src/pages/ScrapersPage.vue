@@ -2,14 +2,13 @@
   <q-page class="flex flex-center" style="width: 100%;">
     <q-table :rows="rows" :columns="columns" row-key="id"
              style="width: 100%; height: 100vh;" virtual-scroll hide-bottom
-             :loading="loading" :rows-per-page-options="[0]">
+             :loading="loading" :rows-per-page-options="[0]" :filter="filter">
       <template v-slot:top>
-        <q-text>
-          <div class="text-h6">Scrapers</div>
-        </q-text>
+        <div class="text-h6">Scrapers</div>
         <q-space />
-        <q-input borderless dense debounce="300" color="primary" v-model="filter">
-          <template v-slot:append>
+        <q-input dense color="primary" style="width: 300px;"
+                 v-model="filter" placeholder="Search..." clearable>
+          <template v-slot:prepend>
             <q-icon name="search" />
           </template>
         </q-input>
@@ -57,15 +56,26 @@ export default {
         { name: 'priority', label: 'Priority', field: 'schedule_priority', align: 'center' },
         { name: 'actions', label: 'Actions', field: row => row, align: 'right' },
       ],
-      rows: []
+      rows: [],
+      filter: '',
     }
   },
   created() {
+    this.filter = this.$route.query.f || '';
     this.loading = true;
     getScrapers()
       .then((data) => this.rows = data)
       .catch((error => this.error = error))
       .finally(() => this.loading = false);
+  },
+  watch: {
+    filter(value) {
+      if (value) {
+        this.$router.replace({query: { f: value }});
+      } else {
+        this.$router.replace({query: { }});
+      }
+    }
   }
 }
 </script>
