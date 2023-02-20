@@ -44,6 +44,15 @@
             Scrapers
           </q-item-section>
         </q-item>
+        <q-item clickable v-ripple :to="$router.resolve({name: 'NewScraperPage'})"
+                :class="$q.dark.isActive ? 'text-white': 'text-black'">
+          <q-item-section avatar>
+            <q-icon name="fa-solid fa-plus" />
+          </q-item-section>
+          <q-item-section>
+            New scraper
+          </q-item-section>
+        </q-item>
         <q-space vertical />
         <q-item clickable v-ripple href="https://github.com/flulemon/sneakpeek">
           <q-item-section avatar>

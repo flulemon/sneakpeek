@@ -65,5 +65,9 @@ export function createOrUpdateScraper(scraper) {
 }
 
 export function deleteScraper(id) {
-  return rpc("delete_scraper", {scraper_id: id});
+  return rpc("delete_scraper", {id: id});
+}
+
+export function isReadOnly() {
+  return rpc("is_read_only", {});
 }

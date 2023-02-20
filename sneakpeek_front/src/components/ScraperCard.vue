@@ -1,7 +1,7 @@
 <template>
   <div>
     <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
-      <div v-if="!error && !loading" class="q-py-md q-px-xl">
+      <div v-if="!error && !loading">
         <div class="flex row q-mb-md">
           <div class="text-h6">
             {{ scraper.name }}

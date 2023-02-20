@@ -1,6 +1,6 @@
 <template>
   <q-form>
-    <q-input readonly v-model="draftScraper.id" label="ID" v-if="draftScraper.id != null" />
+    <q-input readonly v-model="draftScraper.id" label="ID" v-if="mode === 'edit'" />
     <q-input v-model="draftScraper.name" label="Name" />
     <q-select v-model="draftScraper.schedule" label="Schedule" :options="schedules" emit-value />
     <q-input v-model="draftScraper.schedule_crontab" label="Crontab" v-if="draftScraper.schedule === 'crontab'" />
@@ -10,10 +10,22 @@
                     class="q-py-md" :class="$q.dark.isActive ? 'jse-theme-dark': ''" />
     <div class="flex justify-end">
       <q-btn class="q-mr-sm" icon="fa-solid fa-trash" label="Delete" size="sm" color="negative"
-              />
+             v-if="mode === 'edit'" @click="deleteDialog = true" />
       <q-btn class="q-mr-sm" icon="fa-solid fa-save" label="Save" size="sm" color="positive"
               @click="saveScraper" :loading="saveLoading"  />
     </div>
+
+    <q-dialog v-model="deleteDialog" persistent>
+      <q-card>
+        <q-card-section class="row items-center text-h6">
+          Are you sure you want to delete scraper '{{ draftScraper.name }}'?
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="white" v-close-popup />
+          <q-btn label="Delete" color="negative" @click="deleteScraper" :loading="deleteLoading" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-form>
 </template>
 <script>
@@ -21,7 +33,7 @@ import JsonEditorVue from 'json-editor-vue';
 import { extend, format } from 'quasar';
 import useQuasar from 'quasar/src/composables/use-quasar.js';
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css';
-import { createOrUpdateScraper, getPriorities, getSchedules, getScraperHandlers } from "../api.js";
+import { createOrUpdateScraper, deleteScraper, getPriorities, getSchedules, getScraperHandlers } from "../api.js";
 
 const { capitalize } = format;
 
@@ -32,6 +44,7 @@ export default {
   emits: ['update:modelValue'],
   data() {
     return {
+      mode: "new",
       $q: useQuasar(),
 
       loading: false,
@@ -53,13 +66,15 @@ export default {
       saveLoading: false,
       saveError: false,
 
+      deleteDialog: false,
       deleteLoading: false,
       deleteError: false,
     }
   },
   created() {
-    this.loading = true;
     this.draftScraper = this.modelValue || this.defaultScraper;
+    this.mode = this.draftScraper.id == null ? 'new' : 'edit';
+    this.loading = true;
     Promise.all([
       getScraperHandlers().then(data => this.handlers = data),
       getSchedules().then(data => this.schedules = data.map(this.makeScheduleOption)),
@@ -73,7 +88,6 @@ export default {
     modelValue: {
       deep: true,
       handler(val) {
-        console.log(val);
         this.draftScraper = extend(true, {}, val || this.defaultScraper);
         this.prettifyScraperParamsLabels();
       }
@@ -107,8 +121,8 @@ export default {
         id: this.draftScraper.id,
         name: this.draftScraper.name,
         handler: this.draftScraper.handler,
-        schedule: this.draftScraper.schedule.value,
-        schedule_priority: this.draftScraper.schedule_priority.value,
+        schedule: this.draftScraper.schedule,
+        schedule_priority: this.draftScraper.schedule_priority,
         schedule_crontab: this.draftScraper.schedule_crontab,
         config: this.draftScraper.config,
       }
@@ -117,15 +131,35 @@ export default {
         .then((result) => {
           this.$emit('update:modelValue', result);
           this.$q.notify({
-            message: "Successfully update scraper configuration",
+            message: `Successfully ${mode === 'edit' ? 'updated' : 'created'} scraper configuration`,
             color: "positive",
           });
+          if (this.mode === 'edit') {
+            this.$router.push({ name: 'ScraperPage', params: {id: result.id }});
+          }
         })
         .catch(error => this.$q.notify({
             message: `Failed to update scraper configuration: ${error}`,
             color: "negative",
           }))
         .finally(() => this.saveLoading = false);
+    },
+    deleteScraper() {
+      this.deleteLoading = true;
+      deleteScraper(this.draftScraper.id)
+        .then((result) => {
+          this.deleteDialog = false;
+          this.$q.notify({
+            message: `Successfully deleted scraper '${result.name}'`,
+            color: "positive",
+          });
+          this.$router.push({ name: 'ScrapersPage' });
+        })
+        .catch(error => this.$q.notify({
+            message: `Failed to delete scraper '${this.draftScraper.name}': ${error}`,
+            color: "negative",
+          }))
+        .finally(() => this.deleteLoading = false);
     }
   }
 }

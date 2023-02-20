@@ -1,5 +1,5 @@
 <template>
-  <q-page class="flex flex-top column">
+  <q-page class="flex flex-top column q-py-md q-px-xl">
     <scraper-card :id="id" />
     <q-separator spaced />
     <scraper-runs :id="id" />

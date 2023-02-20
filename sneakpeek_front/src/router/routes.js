@@ -6,6 +6,7 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { name: 'ScrapersPage', path: '', component: () => import('src/pages/ScrapersPage.vue') },
+      { name: 'NewScraperPage', path: 'new', component: () => import('src/pages/NewScraperPage.vue') },
       { name: 'ScraperPage', path: 'scraper/:id', component: () => import('src/pages/ScraperPage.vue'), props: true },
     ]
   },
