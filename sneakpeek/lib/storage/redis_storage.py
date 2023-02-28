@@ -11,8 +11,13 @@ from .base import Storage
 
 
 class RedisStorage(Storage):
-    def __init__(self, redis: Redis) -> None:
+    def __init__(
+        self,
+        redis: Redis,
+        is_read_only: bool = False,
+    ) -> None:
         self._redis = redis
+        self._is_read_only = is_read_only
 
     async def _generate_id(self) -> int:
         return int(await self._redis.incr("internal:id_counter"))
@@ -229,3 +234,8 @@ class RedisStorage(Storage):
         lease_owner = await self._redis.get(f"lease:{lease_name}")
         if lease_owner == owner_id:
             await self._redis.delete(f"lease:{lease_name}")
+
+    @count_invocations(subsystem="storage")
+    @measure_latency(subsystem="storage")
+    async def is_read_only(self) -> bool:
+        return self._is_read_only

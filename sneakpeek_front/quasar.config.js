@@ -100,7 +100,8 @@ module.exports = configure(function (/* ctx */) {
         }
       },
       plugins: [
-        "Notify"
+        "Notify",
+        "SessionStorage",
       ]
 
       // iconSet: 'material-icons', // Quasar icon set

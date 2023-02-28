@@ -1,18 +1,18 @@
 <template>
   <q-form>
     <q-input readonly v-model="draftScraper.id" label="ID" v-if="mode === 'edit'" />
-    <q-input v-model="draftScraper.name" label="Name" />
-    <q-select v-model="draftScraper.schedule" label="Schedule" :options="schedules" emit-value />
-    <q-input v-model="draftScraper.schedule_crontab" label="Crontab" v-if="draftScraper.schedule === 'crontab'" />
-    <q-select v-model="draftScraper.schedule_priority" label="Priority" :options="priorities" emit-value />
-    <q-select v-model="draftScraper.handler" label="Handler" :options="handlers" emit-value />
+    <q-input v-model="draftScraper.name" label="Name" :readonly="isReadOnly" />
+    <q-select v-model="draftScraper.schedule" label="Schedule" :options="schedules" emit-value :readonly="isReadOnly" />
+    <q-input v-model="draftScraper.schedule_crontab" label="Crontab" v-if="draftScraper.schedule === 'crontab'" :readonly="isReadOnly" />
+    <q-select v-model="draftScraper.schedule_priority" label="Priority" :options="priorities" emit-value :readonly="isReadOnly" />
+    <q-select v-model="draftScraper.handler" label="Handler" :options="handlers" emit-value :readonly="isReadOnly" />
     <JsonEditorVue v-model="draftScraper.config" mode="text" :mainMenuBar="false" :statusBar="false"
-                    class="q-py-md" :class="$q.dark.isActive ? 'jse-theme-dark': ''" />
+                    class="q-py-md" :class="$q.dark.isActive ? 'jse-theme-dark': ''" :readOnly="isReadOnly" />
     <div class="flex justify-end">
       <q-btn class="q-mr-sm" icon="fa-solid fa-trash" label="Delete" size="sm" color="negative"
-             v-if="mode === 'edit'" @click="deleteDialog = true" />
+             @click="deleteDialog = true" v-if="mode === 'edit' && !isReadOnly"  />
       <q-btn class="q-mr-sm" icon="fa-solid fa-save" label="Save" size="sm" color="positive"
-              @click="saveScraper" :loading="saveLoading"  />
+              @click="saveScraper" :loading="saveLoading" v-if="!isReadOnly"   />
     </div>
 
     <q-dialog v-model="deleteDialog" persistent>
@@ -33,7 +33,7 @@ import JsonEditorVue from 'json-editor-vue';
 import { extend, format } from 'quasar';
 import useQuasar from 'quasar/src/composables/use-quasar.js';
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css';
-import { createOrUpdateScraper, deleteScraper, getPriorities, getSchedules, getScraperHandlers } from "../api.js";
+import { createOrUpdateScraper, deleteScraper, getPriorities, getSchedules, getScraperHandlers, isReadOnly } from "../api.js";
 
 const { capitalize } = format;
 
@@ -69,9 +69,12 @@ export default {
       deleteDialog: false,
       deleteLoading: false,
       deleteError: false,
+
+      isReadOnly: false,
     }
   },
   created() {
+    isReadOnly().then(result => {this.isReadOnly = result;});
     this.draftScraper = this.modelValue || this.defaultScraper;
     this.mode = this.draftScraper.id == null ? 'new' : 'edit';
     this.loading = true;

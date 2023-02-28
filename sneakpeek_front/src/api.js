@@ -1,3 +1,5 @@
+import { SessionStorage } from 'quasar';
+
 function rpc(method, params) {
   return fetch(
     "http://localhost:8080/api/v1/jsonrpc",
@@ -69,5 +71,11 @@ export function deleteScraper(id) {
 }
 
 export function isReadOnly() {
-  return rpc("is_read_only", {});
+  const value = SessionStorage.getItem("is_storage_read_only");
+  if (value != null) return Promise.resolve(value);
+  return rpc("is_read_only", {})
+    .then(result => {
+      SessionStorage.set("is_storage_read_only", result);
+      return result;
+    });
 }

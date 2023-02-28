@@ -12,7 +12,11 @@ from .base import Storage
 
 
 class InMemoryStorage(Storage):
-    def __init__(self, scrapers: list[Scraper] | None = None) -> None:
+    def __init__(
+        self,
+        scrapers: list[Scraper] | None = None,
+        is_read_only: bool = False,
+    ) -> None:
         self._logger = logging.getLogger(__name__)
         self._scrapers: dict[int, Scraper] = {
             scraper.id: scraper for scraper in scrapers or []
@@ -22,6 +26,7 @@ class InMemoryStorage(Storage):
         self._id_generator: Iterator[int] = count(1)
         self._lock = Lock()
         self._leases: dict[str, Lease] = {}
+        self._is_read_only = is_read_only
 
     def _generate_id(self) -> int:
         for id in self._id_generator:
@@ -234,3 +239,8 @@ class InMemoryStorage(Storage):
                 return
             if self._can_acquire_lease(lease_name, owner_id):
                 del self._leases[lease_name]
+
+    @count_invocations(subsystem="storage")
+    @measure_latency(subsystem="storage")
+    async def is_read_only(self) -> bool:
+        return self._is_read_only

@@ -81,6 +81,10 @@ def get_public_api_entrypoint(
             for priority in ScraperRunPriority
         ]
 
+    @entrypoint.method()
+    async def is_read_only() -> bool:
+        return await storage.is_read_only()
+
     return entrypoint
 
 

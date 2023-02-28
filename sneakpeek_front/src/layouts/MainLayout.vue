@@ -45,7 +45,7 @@
           </q-item-section>
         </q-item>
         <q-item clickable v-ripple :to="$router.resolve({name: 'NewScraperPage'})"
-                :class="$q.dark.isActive ? 'text-white': 'text-black'">
+                :class="$q.dark.isActive ? 'text-white': 'text-black'" v-if="!isReadOnly">
           <q-item-section avatar>
             <q-icon name="fa-solid fa-plus" />
           </q-item-section>
@@ -92,17 +92,19 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue';
+import { isReadOnly } from '../api';
 
-export default defineComponent({
+export default {
   name: 'MainLayout',
-  setup () {
-    const drawer = ref(false)
-    const mini = ref(false)
+  data() {
     return {
-      drawer,
-      mini,
+      drawer: false,
+      mini: false,
+      isReadOnly: false,
     }
+  },
+  created() {
+    isReadOnly().then(result => {this.isReadOnly = result;});
   }
-})
+}
 </script>

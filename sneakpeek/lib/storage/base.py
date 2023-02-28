@@ -82,3 +82,7 @@ class Storage(ABC):
     @abstractmethod
     async def release_lease(self, lease_name: str, owner_id: str) -> None:
         ...
+
+    @abstractmethod
+    async def is_read_only(self) -> bool:
+        ...
