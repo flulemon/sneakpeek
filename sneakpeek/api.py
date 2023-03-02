@@ -1,6 +1,9 @@
+import pathlib
+
 import fastapi_jsonrpc as jsonrpc
 from fastapi import Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from sneakpeek.lib.errors import ScraperHasActiveRunError, ScraperNotFoundError
@@ -101,4 +104,12 @@ def create_api(
         allow_headers=["*"],
     )
     app.bind_entrypoint(get_public_api_entrypoint(storage, queue, handlers))
+    app.mount(
+        "/",
+        StaticFiles(
+            directory=f"{pathlib.Path(__file__).parent.resolve()}/static",
+            html=True,
+        ),
+        name="html",
+    )
     return app

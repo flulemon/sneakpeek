@@ -55,6 +55,7 @@ class SneakpeekServer:
         )
         self._api_config = uvicorn.Config(
             create_api(self._storage, self._queue, handlers),
+            host="0.0.0.0",
             port=api_port,
             log_config=None,
         )

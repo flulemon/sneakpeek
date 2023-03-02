@@ -1,6 +1,7 @@
 import random
 
-from demo.demo_scraper import DemoScraper
+from demo_scraper import DemoScraper
+
 from sneakpeek.lib.models import Scraper, ScraperRunPriority, ScraperSchedule
 from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
 from sneakpeek.logging import configure_logging
