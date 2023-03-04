@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Indices and tables &mdash; Sneakpeek 0.1.4 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> Sneakpeek
+          </a>
+              <div class="version">
+                0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Indices and tables</a></li>
+<li><a class="reference internal" href="#module-sneakpeek.server">API</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Sneakpeek</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+      <li>Indices and tables</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+<section id="module-sneakpeek.server">
+<span id="api"></span><h1>API<a class="headerlink" href="#module-sneakpeek.server" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sneakpeek.server.SneakpeekServer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sneakpeek.server.</span></span><span class="sig-name descname"><span class="pre">SneakpeekServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handlers</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">sneakpeek.scraper_handler.ScraperHandler</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">sneakpeek.lib.storage.base.Storage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_api</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_worker</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_scheduler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expose_metrics</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_max_concurrency</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_port</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">8080</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler_storage_poll_delay</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">datetime.timedelta</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">datetime.timedelta(seconds=5)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler_lease_duration</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">datetime.timedelta</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">datetime.timedelta(seconds=60)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plugins</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">sneakpeek.scraper_context.BeforeRequestPlugin</span> <span class="p"><span class="pre">|</span></span> <span class="pre">sneakpeek.scraper_context.AfterResponsePlugin</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics_port</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">9090</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sneakpeek.server.SneakpeekServer" title="Permalink to this definition"></a></dt>
+<dd><p>Sneakpeek server. It can run multiple services at once:</p>
+<ul class="simple">
+<li><p>API - allows interactions with scrapers storage and scrapers via JsonRPC or UI</p></li>
+<li><p>Worker - executes scheduled scrapers</p></li>
+<li><p>Scheduler - automatically schedules scrapers that are stored in the storage</p></li>
+</ul>
+<p>Initialize Sneakpeek server</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handlers</strong> (<em>list</em><em>[</em><em>ScraperHandler</em><em>]</em>) – List of handlers that implement scraper logic</p></li>
+<li><p><strong>storage</strong> (<em>Storage</em>) – Sneakpeek storage implementation</p></li>
+<li><p><strong>run_api</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to run API service. Defaults to True.</p></li>
+<li><p><strong>run_worker</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to run worker service. Defaults to True.</p></li>
+<li><p><strong>run_scheduler</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to run scheduler service. Defaults to True.</p></li>
+<li><p><strong>expose_metrics</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to expose metrics (prometheus format). Defaults to True.</p></li>
+<li><p><strong>worker_max_concurrency</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of concurrently executed scrapers. Defaults to 50.</p></li>
+<li><p><strong>api_port</strong> (<em>int</em><em>, </em><em>optional</em>) – Port which is used for API and UI. Defaults to 8080.</p></li>
+<li><p><strong>scheduler_storage_poll_delay</strong> (<em>timedelta</em><em>, </em><em>optional</em>) – How much scheduler wait before polling storage for scrapers updates. Defaults to 5 seconds.</p></li>
+<li><p><strong>scheduler_lease_duration</strong> (<em>timedelta</em><em>, </em><em>optional</em>) – How long scheduler lease lasts. Lease is required for scheduler to be able to create new scraper runs. This is needed so at any point of time there’s only one active scheduler instance. Defaults to 1 minute.</p></li>
+<li><p><strong>plugins</strong> (<em>list</em><em>[</em><em>Plugin</em><em>] </em><em>| </em><em>None</em><em>, </em><em>optional</em>) – List of plugins that will be used by scraper runner. Can be omitted if run_worker is False. Defaults to None.</p></li>
+<li><p><strong>metrics_port</strong> (<em>int</em><em>, </em><em>optional</em>) – Port which is used to expose metric. Defaults to 9090.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="sneakpeek.server.SneakpeekServer.serve">
+<span class="sig-name descname"><span class="pre">serve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">asyncio.events.AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#sneakpeek.server.SneakpeekServer.serve" title="Permalink to this definition"></a></dt>
+<dd><p>Start Sneakpeek server</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>loop</strong> (<em>asyncio.AbstractEventLoop</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – AsyncIO loop to use. In case it’s None result of <cite>asyncio.get_event_loop()</cite> will be used. Defaults to None.</p></li>
+<li><p><strong>blocking</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to block thread while server is running. Defaults to True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sneakpeek.server.SneakpeekServer.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">asyncio.events.AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#sneakpeek.server.SneakpeekServer.stop" title="Permalink to this definition"></a></dt>
+<dd><p>Stop Sneakpeek server</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>loop</strong> (<em>asyncio.AbstractEventLoop</em><em> | </em><em>None</em><em>, </em><em>optional</em>) – AsyncIO loop to use. In case it’s None result of <cite>asyncio.get_event_loop()</cite> will be used. Defaults to None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Dan Yazovsky.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
