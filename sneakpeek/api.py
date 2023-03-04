@@ -28,6 +28,17 @@ def get_public_api_entrypoint(
     queue: Queue,
     handlers: list[ScraperHandler],
 ) -> jsonrpc.Entrypoint:
+    """
+    Create public JsonRPC API entrypoint (mostly mimics storage and queue API)
+
+    Args:
+        storage (Storage): Sneakpeek storage implementation
+        queue (Queue): Sneakpeek queue implementation
+        handlers (list[ScraperHandler]): List of handlers that implement scraper logic
+
+    Returns:
+        jsonrpc.Entrypoint: FastAPI JsonRPC entrypoint
+    """
     entrypoint = jsonrpc.Entrypoint("/api/v1/jsonrpc")
 
     @entrypoint.method()
@@ -96,6 +107,14 @@ def create_api(
     queue: QueueABC,
     handlers: list[ScraperHandler],
 ) -> jsonrpc.API:
+    """
+    Create JsonRPC API (FastAPI is used under the hood)
+
+    Args:
+        storage (Storage): Sneakpeek storage implementation
+        queue (Queue): Sneakpeek queue implementation
+        handlers (list[ScraperHandler]): List of handlers that implement scraper logic
+    """
     app = jsonrpc.API()
     app.add_middleware(
         CORSMiddleware,
