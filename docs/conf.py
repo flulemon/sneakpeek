@@ -44,3 +44,5 @@ html_theme_options = {
     "titles_only": True,
 }
 github_url = "https://github.com/flulemon/sneakpeek"
+highlight_language = "python3"
+pygments_style = "sphinx"

@@ -8,6 +8,10 @@ API
 =======================================================
 .. automodule:: sneakpeek.server
     :members:
+.. automodule:: sneakpeek.api
+    :members:
+.. automodule:: sneakpeek.logging
+    :members:
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
