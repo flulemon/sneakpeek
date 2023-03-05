@@ -10,6 +10,8 @@ API
     :members:
 .. automodule:: sneakpeek.api
     :members:
+.. automodule:: sneakpeek.metrics
+    :members:
 .. automodule:: sneakpeek.logging
     :members:
 .. toctree::
