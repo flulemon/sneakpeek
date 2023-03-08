@@ -24,12 +24,22 @@ scraper_runs = Counter(
 
 
 class RunnerABC(ABC):
+    """Scraper runner - manages scraper run lifecycle and runs the scraper logic"""
+
     @abstractmethod
     async def run(self, run: ScraperRun) -> None:
+        """
+        Execute scraper run
+
+        Args:
+            run (ScraperRun): Scraper run metadata
+        """
         ...
 
 
 class Runner(RunnerABC):
+    """Default scraper runner implementation"""
+
     def __init__(
         self,
         handlers: List[Scraper],
@@ -37,6 +47,14 @@ class Runner(RunnerABC):
         storage: Storage,
         plugins: list[Plugin] | None = None,
     ) -> None:
+        """Initialize runner
+
+        Args:
+            handlers (list[ScraperHandler]): List of handlers that implement scraper logic
+            queue (Queue): Sneakpeek queue implementation
+            storage (Storage): Sneakpeek storage implementation
+            plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Defaults to None.
+        """
         self._logger = logging.getLogger(__name__)
         self._handlers = {handler.name: handler for handler in handlers}
         self._queue = queue
@@ -52,6 +70,20 @@ class Runner(RunnerABC):
 
     @count_invocations(subsystem="scraper_runner")
     async def run(self, run: ScraperRun) -> None:
+        """
+        Execute scraper. Following logic is done:
+
+        * Ping scraper run
+        * Build scraper context
+        * Execute scraper logic
+        * [On success] Set scraper run status to ``SUCCEEDED``
+        * [On fail] Set scraper run status to ``FAILED``
+        * [If the scraper run was killed] Do nothing
+        * Persist scraper run status
+
+        Args:
+            run (ScraperRun): Scraper job metadata
+        """
         delay_histogram.labels(type="time_spent_in_queue").observe(
             (datetime.utcnow() - run.created_at).total_seconds()
         )
