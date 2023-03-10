@@ -43,14 +43,25 @@ class SchedulerABC(ABC):
 
 
 class Scheduler(SchedulerABC):
+    """Sneakpeeker scheduler - schedules scrapers and performs maintenance jobs. Uses APScheduler under the hood."""
+
     def __init__(
         self,
         storage: Storage,
         queue: QueueABC,
         storage_poll_frequency: timedelta = DEFAULT_STORAGE_POLL_DELAY,
         lease_duration: timedelta = DEFAULT_LEASE_DURATION,
-        runs_to_keep: int = 3,
+        runs_to_keep: int = 100,
     ) -> None:
+        """Initialize scheduler
+
+        Args:
+            storage (Storage): Sneakpeek storage implementation
+            queue (Queue): Sneakpeek queue implementation
+            storage_poll_frequency (timedelta, optional): How much scheduler wait before polling storage for scrapers updates. Defaults to 5 seconds.
+            lease_duration (timedelta, optional): How long scheduler lease lasts. Lease is required for scheduler to be able to create new scraper runs. This is needed so at any point of time there's only one active scheduler instance. Defaults to 1 minute.
+            runs_to_keep (int, optional): Maximum number of historical scraper runs to keep in the storage. Storage is cleaned up every 10 minutes. Defaults to 100.
+        """
         self._lease_name = "sneakpeek:scheduler"
         self._owner_id = str(uuid4())
         self._lease_duration = lease_duration
@@ -95,6 +106,11 @@ class Scheduler(SchedulerABC):
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
     async def _enqueue_scraper(self, scraper_id: int) -> None:
+        if not self._lease:
+            self._logger.debug(
+                f"Couldn't enqueue scraper id={scraper_id} because lease is not acquired"
+            )
+            return
         scraper = self._scrapers.get(scraper_id)
         if not scraper:
             self._logger.warning(f"Tried to enqueue unknown scraper: {scraper_id}")
@@ -102,11 +118,6 @@ class Scheduler(SchedulerABC):
 
         scraper_human_id = f"'{scraper.name}'::{scraper.id}"
         self._logger.debug(f"Trying to enqueue scraper {scraper_human_id}")
-        if not self._lease:
-            self._logger.debug(
-                f"Couldn't enqueue scraper {scraper_human_id} because lease is not acquired"
-            )
-            return
         try:
             scraper_run = await self._queue.enqueue(
                 scraper.id,
@@ -155,6 +166,12 @@ class Scheduler(SchedulerABC):
     async def _update_scraper_job(
         self, scraper: Scraper, remove_existing: bool
     ) -> None:
+        """Add or update internal scheduler job for the scraper.
+
+        Args:
+            scraper (Scraper): Scraper metadata
+            remove_existing (bool): If True will remove internal scheduler job before adding a new one.
+        """
         logging.info(
             f"{'Updating' if remove_existing else 'Adding'} scraper enqueue job: '{scraper.name}'::{scraper.id}"
         )
@@ -173,6 +190,7 @@ class Scheduler(SchedulerABC):
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
     async def _update_scrapers_jobs(self) -> None:
+        """Poll storage for all existing scrapers and update corresponding scheduler jobs"""
         scrapers = await self._storage.get_scrapers()
         index = {scraper.id: scraper for scraper in scrapers}
         for existing in self._scrapers.values():
@@ -188,6 +206,11 @@ class Scheduler(SchedulerABC):
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
     async def _on_tick(self) -> None:
+        """Periodic job that:
+
+        * Tries to acquire lease to ensure that there's only single active scheduler replica that can enqueue jobs
+        * Updates internal (APScheduler) jobs that enqueue scrapers
+        """
         replicas_gauge.labels(type="total_scheduler").set(1)
         try:
             self._logger.debug("Starting scheduler update cycle")
@@ -213,7 +236,8 @@ class Scheduler(SchedulerABC):
 
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
-    async def _kill_dead_scraper_runs(self):
+    async def _kill_dead_scraper_runs(self) -> None:
+        """Periodic job that kills scraper runs that are active but haven't been pinged for a while"""
         if not self._lease:
             return
         try:
@@ -246,6 +270,7 @@ class Scheduler(SchedulerABC):
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
     async def _delete_old_scraper_runs(self):
+        """Periodic job that cleans up storage from old historical scraper runs"""
         if not self._lease:
             return
         try:
@@ -261,6 +286,7 @@ class Scheduler(SchedulerABC):
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
     async def _export_queue_len(self):
+        """Periodic job that exports queue length metrics"""
         if not self._lease:
             return
         try:
