@@ -103,10 +103,18 @@ class Scheduler(SchedulerABC):
             max_instances=1,
         )
 
+    @property
+    def _is_lease_acquired(self) -> bool:
+        return (
+            self._lease
+            and self._lease.acquired
+            and datetime.utcnow() < self._lease.acquired_until
+        )
+
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
     async def _enqueue_scraper(self, scraper_id: int) -> None:
-        if not self._lease:
+        if not self._is_lease_acquired:
             self._logger.debug(
                 f"Couldn't enqueue scraper id={scraper_id} because lease is not acquired"
             )
@@ -238,7 +246,7 @@ class Scheduler(SchedulerABC):
     @count_invocations(subsystem="scheduler")
     async def _kill_dead_scraper_runs(self) -> None:
         """Periodic job that kills scraper runs that are active but haven't been pinged for a while"""
-        if not self._lease:
+        if not self._is_lease_acquired:
             return
         try:
             semaphore = asyncio.Semaphore(self._max_kill_dead_runs_concurrency)
@@ -271,7 +279,7 @@ class Scheduler(SchedulerABC):
     @count_invocations(subsystem="scheduler")
     async def _delete_old_scraper_runs(self):
         """Periodic job that cleans up storage from old historical scraper runs"""
-        if not self._lease:
+        if not self._is_lease_acquired:
             return
         try:
             self._logger.info("Removing old scraper runs")
@@ -287,7 +295,7 @@ class Scheduler(SchedulerABC):
     @count_invocations(subsystem="scheduler")
     async def _export_queue_len(self):
         """Periodic job that exports queue length metrics"""
-        if not self._lease:
+        if not self._is_lease_acquired:
             return
         try:
             for priority in ScraperRunPriority:
