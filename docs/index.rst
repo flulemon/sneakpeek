@@ -14,6 +14,12 @@ API
     :members:
 .. automodule:: sneakpeek.runner
     :members:
+.. automodule:: sneakpeek.scraper_config
+    :members:
+.. automodule:: sneakpeek.scraper_context
+    :members:
+.. automodule:: sneakpeek.scraper_handler
+    :members:
 .. automodule:: sneakpeek.metrics
     :members:
 .. automodule:: sneakpeek.logging

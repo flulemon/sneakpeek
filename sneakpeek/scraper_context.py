@@ -34,9 +34,12 @@ class Request:
 
 
 class BeforeRequestPlugin(ABC):
+    """Abstract class for the plugin which is called before each request (like Middleware)"""
+
     @property
     @abstractmethod
     def name(self) -> str:
+        """Name of the plugin"""
         ...
 
     @abstractmethod
@@ -45,13 +48,26 @@ class BeforeRequestPlugin(ABC):
         request: Request,
         config: Any | None = None,
     ) -> Request:
+        """
+        Function that is called on each (HTTP) request before its dispatched.
+
+        Args:
+            request (Request): Request metadata
+            config (Any | None, optional): Plugin configuration. Defaults to None.
+
+        Returns:
+            Request: Request metadata
+        """
         ...
 
 
 class AfterResponsePlugin(ABC):
+    """Abstract class for the plugin which is called after each request"""
+
     @property
     @abstractmethod
     def name(self) -> str:
+        """Name of the plugin"""
         ...
 
     @abstractmethod
@@ -61,6 +77,17 @@ class AfterResponsePlugin(ABC):
         response: aiohttp.ClientResponse,
         config: Any | None = None,
     ) -> aiohttp.ClientResponse:
+        """
+        Function that is called on each (HTTP) response before its result returned to the caller.
+
+        Args:
+            request (Request): Request metadata
+            response (aiohttp.ClientResponse): HTTP Response
+            config (Any | None, optional): Plugin configuration. Defaults to None.
+
+        Returns:
+            aiohttp.ClientResponse: HTTP Response
+        """
         ...
 
 
@@ -68,12 +95,23 @@ Plugin = BeforeRequestPlugin | AfterResponsePlugin
 
 
 class ScraperContext:
+    """
+    Scraper context - helper class that implements basic HTTP client which logic can be extended by
+    plugins that can preprocess request (e.g. Rate Limiter) and postprocess response (e.g. Response logger).
+    """
+
     def __init__(
         self,
         config: ScraperConfig,
         plugins: list[Plugin] | None = None,
         ping_session_func: Callable | None = None,
     ) -> None:
+        """
+        Args:
+            config (ScraperConfig): Scraper configuration
+            plugins (list[Plugin] | None, optional): List of available plugins. Defaults to None.
+            ping_session_func (Callable | None, optional): Function that pings scraper run. Defaults to None.
+        """
         self.params = config.params
         self.ping_session_func = ping_session_func
         self._logger = logging.getLogger(__name__)
@@ -141,6 +179,7 @@ class ScraperContext:
         return response
 
     async def ping_session(self) -> None:
+        """Ping scraper run, so it's not considered dead"""
         if not self.ping_session_func:
             self._logger.warning(
                 "Tried to ping scraper run, but the function to ping session is None"
@@ -168,6 +207,13 @@ class ScraperContext:
         headers: HttpHeaders | None = None,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        """Make GET request to the given URL
+
+        Args:
+            url (str): URL to send GET request to
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            **kwargs: See aiohttp.get() for the full list of arguments
+        """
         return await self._request(
             Request(
                 method=HttpMethod.GET,
@@ -184,6 +230,13 @@ class ScraperContext:
         headers: HttpHeaders | None = None,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        """Make POST request to the given URL
+
+        Args:
+            url (str): URL to send POST request to
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            **kwargs: See aiohttp.get() for the full list of arguments
+        """
         return await self._request(
             Request(
                 method=HttpMethod.POST,
@@ -200,6 +253,13 @@ class ScraperContext:
         headers: HttpHeaders | None = None,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        """Make HEAD request to the given URL
+
+        Args:
+            url (str): URL to send HEAD request to
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            **kwargs: See aiohttp.head() for the full list of arguments
+        """
         return await self._request(
             Request(
                 method=HttpMethod.HEAD,
@@ -216,6 +276,13 @@ class ScraperContext:
         headers: HttpHeaders | None = None,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        """Make DELETE request to the given URL
+
+        Args:
+            url (str): URL to send DELETE request to
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            **kwargs: See aiohttp.delete() for the full list of arguments
+        """
         return await self._request(
             Request(
                 method=HttpMethod.DELETE,
@@ -232,6 +299,13 @@ class ScraperContext:
         headers: HttpHeaders | None = None,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        """Make PUT request to the given URL
+
+        Args:
+            url (str): URL to send PUT request to
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            **kwargs: See aiohttp.put() for the full list of arguments
+        """
         return await self._request(
             Request(
                 method=HttpMethod.PUT,
@@ -248,6 +322,13 @@ class ScraperContext:
         headers: HttpHeaders | None = None,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        """Make OPTIONS request to the given URL
+
+        Args:
+            url (str): URL to send OPTIONS request to
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            **kwargs: See aiohttp.options() for the full list of arguments
+        """
         return await self._request(
             Request(
                 method=HttpMethod.OPTIONS,
