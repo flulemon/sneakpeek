@@ -22,6 +22,8 @@ class WorkerABC(ABC):
 
 
 class Worker(WorkerABC):
+    """Sneakpeeker worker - consumes scraper runs queue and runs scapers logic"""
+
     def __init__(
         self,
         runner: RunnerABC,
@@ -29,6 +31,13 @@ class Worker(WorkerABC):
         loop: AbstractEventLoop | None = None,
         max_concurrency: int = 50,
     ) -> None:
+        """
+        Args:
+            runner (RunnerABC): Scraper runner
+            queue (Queue): Sneakpeek queue implementation
+            loop (asyncio.AbstractEventLoop | None, optional): AsyncIO loop to use. In case it's None result of `asyncio.get_event_loop()` will be used. Defaults to None.
+            max_concurrency (int, optional): Maximum number of concurrent scraper jobs. Defaults to 50.
+        """
         self._running = False
         self._loop = loop
         self._logger = logging.getLogger(__name__)
@@ -81,6 +90,9 @@ class Worker(WorkerABC):
                 self._logger.debug(
                     f"Worker on tick function failed. Traceback: {format_exc()}"
                 )
+            # Performance optimisation - in case anything has been dequeued
+            # there's some chance that queue is not empty, and in case worker
+            # has capacity we can immediately try to dequeue something
             if not dequeued_anything:
                 await sleep(timedelta(seconds=1).total_seconds())
 

@@ -12,6 +12,8 @@ API
     :members:
 .. automodule:: sneakpeek.scheduler
     :members:
+.. automodule:: sneakpeek.worker
+    :members:
 .. automodule:: sneakpeek.runner
     :members:
 .. automodule:: sneakpeek.scraper_config
