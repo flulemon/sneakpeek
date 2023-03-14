@@ -109,7 +109,7 @@ class ScraperContext:
         """
         Args:
             config (ScraperConfig): Scraper configuration
-            plugins (list[Plugin] | None, optional): List of available plugins. Defaults to None.
+            plugins (list[BeforeRequestPlugin | AfterResponsePlugin] | None, optional): List of available plugins. Defaults to None.
             ping_session_func (Callable | None, optional): Function that pings scraper run. Defaults to None.
         """
         self.params = config.params

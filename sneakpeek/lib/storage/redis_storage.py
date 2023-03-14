@@ -11,11 +11,18 @@ from .base import Storage
 
 
 class RedisStorage(Storage):
+    """Redis storage implementation"""
+
     def __init__(
         self,
         redis: Redis,
         is_read_only: bool = False,
     ) -> None:
+        """
+        Args:
+            redis (Redis): Async redis client
+            is_read_only (bool, optional): Whether to allow modifications of the scrapers list. Defaults to False.
+        """
         self._redis = redis
         self._is_read_only = is_read_only
 

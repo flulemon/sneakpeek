@@ -46,3 +46,9 @@ html_theme_options = {
 github_url = "https://github.com/flulemon/sneakpeek"
 highlight_language = "python3"
 pygments_style = "sphinx"
+
+autodoc_default_options = {
+    "members": True,
+    "show-inheritance": True,
+}
+autodoc_typehints = "both"

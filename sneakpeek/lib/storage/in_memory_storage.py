@@ -12,11 +12,18 @@ from .base import Storage
 
 
 class InMemoryStorage(Storage):
+    """In-memory storage implementation. Should only be used for local debugging"""
+
     def __init__(
         self,
         scrapers: list[Scraper] | None = None,
         is_read_only: bool = False,
     ) -> None:
+        """
+        Args:
+            scrapers (list[Scraper] | None, optional): List of pre-defined scrapers. Defaults to None.
+            is_read_only (bool, optional): Whether to allow modifications of the scrapers list. Defaults to False.
+        """
         self._logger = logging.getLogger(__name__)
         self._scrapers: dict[int, Scraper] = {
             scraper.id: scraper for scraper in scrapers or []

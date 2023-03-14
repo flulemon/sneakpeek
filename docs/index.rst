@@ -7,25 +7,21 @@ Indices and tables
 API
 =======================================================
 .. automodule:: sneakpeek.server
-    :members:
 .. automodule:: sneakpeek.api
-    :members:
 .. automodule:: sneakpeek.scheduler
-    :members:
 .. automodule:: sneakpeek.worker
-    :members:
 .. automodule:: sneakpeek.runner
-    :members:
 .. automodule:: sneakpeek.scraper_config
-    :members:
 .. automodule:: sneakpeek.scraper_context
-    :members:
 .. automodule:: sneakpeek.scraper_handler
-    :members:
 .. automodule:: sneakpeek.metrics
-    :members:
 .. automodule:: sneakpeek.logging
-    :members:
+.. automodule:: sneakpeek.lib.errors
+.. automodule:: sneakpeek.lib.models
+.. automodule:: sneakpeek.lib.queue
+.. automodule:: sneakpeek.lib.storage.base
+.. automodule:: sneakpeek.lib.storage.in_memory_storage
+.. automodule:: sneakpeek.lib.storage.redis_storage
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
