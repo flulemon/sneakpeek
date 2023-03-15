@@ -6,45 +6,45 @@ from typing import List
 
 from prometheus_client import Counter
 
-from sneakpeek.lib.errors import ScraperRunPingFinishedError, UnknownScraperHandlerError
-from sneakpeek.lib.models import Scraper, ScraperRun, ScraperRunStatus
+from sneakpeek.lib.errors import ScraperJobPingFinishedError, UnknownScraperHandlerError
+from sneakpeek.lib.models import Scraper, ScraperJob, ScraperJobStatus
 from sneakpeek.lib.queue import QueueABC
-from sneakpeek.lib.storage.base import Storage
-from sneakpeek.logging import scraper_run_context
+from sneakpeek.lib.storage.base import ScraperJobsStorage
+from sneakpeek.logging import scraper_job_context
 from sneakpeek.metrics import count_invocations, delay_histogram
 from sneakpeek.scraper_context import Plugin, ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
 
-scraper_runs = Counter(
-    name="scraper_runs",
-    documentation="Scraper runs executed",
+scraper_jobs = Counter(
+    name="scraper_jobs",
+    documentation="Scraper jobs executed",
     namespace="sneakpeek",
     labelnames=["type"],
 )
 
 
 class RunnerABC(ABC):
-    """Scraper runner - manages scraper run lifecycle and runs the scraper logic"""
+    """Scraper runner - manages scraper job lifecycle and runss the scraper logic"""
 
     @abstractmethod
-    async def run(self, run: ScraperRun) -> None:
+    async def run(self, job: ScraperJob) -> None:
         """
-        Execute scraper run
+        Execute scraper job
 
         Args:
-            run (ScraperRun): Scraper run metadata
+            job (ScraperJob): Scraper job metadata
         """
         ...
 
 
 class Runner(RunnerABC):
-    """Default scraper runner implementation"""
+    """Default scraper jobner implementation"""
 
     def __init__(
         self,
         handlers: List[Scraper],
         queue: QueueABC,
-        storage: Storage,
+        storage: ScraperJobsStorage,
         plugins: list[Plugin] | None = None,
     ) -> None:
         """Initialize runner
@@ -53,7 +53,7 @@ class Runner(RunnerABC):
             handlers (list[ScraperHandler]): List of handlers that implement scraper logic
             queue (Queue): Sneakpeek queue implementation
             storage (Storage): Sneakpeek storage implementation
-            plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Defaults to None.
+            plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper jobner. Defaults to None.
         """
         self._logger = logging.getLogger(__name__)
         self._handlers = {handler.name: handler for handler in handlers}
@@ -61,60 +61,60 @@ class Runner(RunnerABC):
         self._storage = storage
         self._plugins = plugins
 
-    def _get_handler(self, run: ScraperRun) -> ScraperHandler:
-        if run.scraper.handler not in self._handlers:
+    def _get_handler(self, job: ScraperJob) -> ScraperHandler:
+        if job.scraper.handler not in self._handlers:
             raise UnknownScraperHandlerError(
-                f"Unknown scraper handler '{run.scraper.handler}'"
+                f"Unknown scraper handler '{job.scraper.handler}'"
             )
-        return self._handlers[run.scraper.handler]
+        return self._handlers[job.scraper.handler]
 
     @count_invocations(subsystem="scraper_runner")
-    async def run(self, run: ScraperRun) -> None:
+    async def run(self, job: ScraperJob) -> None:
         """
         Execute scraper. Following logic is done:
 
-        * Ping scraper run
+        * Ping scraper job
         * Build scraper context
         * Execute scraper logic
-        * [On success] Set scraper run status to ``SUCCEEDED``
-        * [On fail] Set scraper run status to ``FAILED``
-        * [If the scraper run was killed] Do nothing
-        * Persist scraper run status
+        * [On success] Set scraper job status to ``SUCCEEDED``
+        * [On fail] Set scraper job status to ``FAILED``
+        * [If the scraper job was killed] Do nothing
+        * Persist scraper job status
 
         Args:
-            run (ScraperRun): Scraper job metadata
+            job (ScraperRun): Scraper job metadata
         """
         delay_histogram.labels(type="time_spent_in_queue").observe(
-            (datetime.utcnow() - run.created_at).total_seconds()
+            (datetime.utcnow() - job.created_at).total_seconds()
         )
-        with scraper_run_context(run):
+        with scraper_job_context(job):
             self._logger.info("Starting scraper")
 
             async def ping_session():
-                await self._queue.ping_scraper_run(run.scraper.id, run.id)
+                await self._queue.ping_scraper_job(job.scraper.id, job.id)
 
-            context = ScraperContext(run.scraper.config, self._plugins, ping_session)
+            context = ScraperContext(job.scraper.config, self._plugins, ping_session)
             try:
                 await context.start_session()
-                await self._queue.ping_scraper_run(run.scraper.id, run.id)
-                handler = self._get_handler(run)
-                run.result = await handler.run(context)
-                run.status = ScraperRunStatus.SUCCEEDED
-                scraper_runs.labels(type="success").inc()
-            except ScraperRunPingFinishedError as e:
+                await self._queue.ping_scraper_job(job.scraper.id, job.id)
+                handler = self._get_handler(job)
+                job.result = await handler.run(context)
+                job.status = ScraperJobStatus.SUCCEEDED
+                scraper_jobs.labels(type="success").inc()
+            except ScraperJobPingFinishedError as e:
                 self._logger.error(
                     "Scraper run seems to be killed. Not overriding status"
                 )
-                run.result = str(e)
-                scraper_runs.labels(type="killed").inc()
+                job.result = str(e)
+                scraper_jobs.labels(type="killed").inc()
             except Exception as e:
                 self._logger.error(f"Failed to execute scraper with error: {e}")
                 self._logger.debug(f"Traceback: {format_exc()}")
-                run.status = ScraperRunStatus.FAILED
-                run.result = str(e)
-                scraper_runs.labels(type="failed").inc()
+                job.status = ScraperJobStatus.FAILED
+                job.result = str(e)
+                scraper_jobs.labels(type="failed").inc()
             finally:
                 await context.close()
-            run.finished_at = datetime.utcnow()
-            await self._storage.update_scraper_run(run)
+            job.finished_at = datetime.utcnow()
+            await self._storage.update_scraper_job(job)
             self._logger.info("Successfully executed scraper")

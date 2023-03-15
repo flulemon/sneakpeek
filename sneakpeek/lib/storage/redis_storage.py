@@ -1,23 +1,18 @@
 from datetime import datetime, timedelta
-from typing import List
 
 from redis.asyncio import Redis
 
-from sneakpeek.lib.errors import ScraperNotFoundError, ScraperRunNotFoundError
-from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
+from sneakpeek.lib.errors import ScraperJobNotFoundError, ScraperNotFoundError
+from sneakpeek.lib.models import Lease, Scraper, ScraperJob, ScraperJobPriority
 from sneakpeek.metrics import count_invocations, measure_latency
 
-from .base import Storage
+from .base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 
 
-class RedisStorage(Storage):
-    """Redis storage implementation"""
+class RedisScrapersStorage(ScrapersStorage):
+    """Redis scrapers storage implementation"""
 
-    def __init__(
-        self,
-        redis: Redis,
-        is_read_only: bool = False,
-    ) -> None:
+    def __init__(self, redis: Redis, is_read_only: bool = False) -> None:
         """
         Args:
             redis (Redis): Async redis client
@@ -26,23 +21,28 @@ class RedisStorage(Storage):
         self._redis = redis
         self._is_read_only = is_read_only
 
+    @count_invocations(subsystem="storage")
+    @measure_latency(subsystem="storage")
+    async def is_read_only(self) -> bool:
+        return self._is_read_only
+
     async def _generate_id(self) -> int:
         return int(await self._redis.incr("internal:id_counter"))
 
-    async def _generate_queue_id(self, priority: ScraperRunPriority) -> int:
+    async def _generate_queue_id(self, priority: ScraperJobPriority) -> int:
         return int(await self._redis.incr(f"internal:queue:{priority}:last_id"))
 
-    async def _get_queue_last_id(self, priority: ScraperRunPriority) -> int:
+    async def _get_queue_last_id(self, priority: ScraperJobPriority) -> int:
         return int(await self._redis.get(f"internal:queue:{priority}:last_id") or 0)
 
-    async def _get_queue_offset(self, priority: ScraperRunPriority) -> int:
+    async def _get_queue_offset(self, priority: ScraperJobPriority) -> int:
         return int(await self._redis.get(f"internal:queue:{priority}:offset") or 0)
 
     def _get_scraper_key(self, id: int) -> str:
         return f"scraper:{id}"
 
-    def _get_scraper_run_key(self, scraper_id: int, run_id: int) -> str:
-        return f"scraper_run:{scraper_id}:{run_id}"
+    def _get_scraper_job_key(self, scraper_id: int, run_id: int) -> str:
+        return f"scraper_job:{scraper_id}:{run_id}"
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
@@ -51,7 +51,7 @@ class RedisStorage(Storage):
         name_filter: str | None = None,
         max_items: int | None = None,
         offset: int | None = None,
-    ) -> List[Scraper]:
+    ) -> list[Scraper]:
         start = offset or 0
         end = start + (max_items or 10)
         return [
@@ -62,7 +62,7 @@ class RedisStorage(Storage):
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def get_scrapers(self) -> List[Scraper]:
+    async def get_scrapers(self) -> list[Scraper]:
         keys = [key.decode() async for key in self._redis.scan_iter("scraper:*")]
         return sorted(
             (Scraper.parse_raw(scraper) for scraper in await self._redis.mget(keys)),
@@ -108,63 +108,86 @@ class RedisStorage(Storage):
             raise ScraperNotFoundError()
         return Scraper.parse_raw(scraper)
 
+
+class RedisScraperJobsStorage(ScraperJobsStorage):
+    """Redis storage for scraper jobs. Should only be used for development purposes"""
+
+    def __init__(self, redis: Redis, scrapers_storage: ScrapersStorage) -> None:
+        """
+        Args:
+            redis (Redis): Async redis client
+        """
+        self._redis = redis
+        self._scrapers_storage = scrapers_storage
+
+    async def _generate_id(self) -> int:
+        return int(await self._redis.incr("internal:id_counter"))
+
+    async def _generate_queue_id(self, priority: ScraperJobPriority) -> int:
+        return int(await self._redis.incr(f"internal:queue:{priority}:last_id"))
+
+    async def _get_queue_last_id(self, priority: ScraperJobPriority) -> int:
+        return int(await self._redis.get(f"internal:queue:{priority}:last_id") or 0)
+
+    async def _get_queue_offset(self, priority: ScraperJobPriority) -> int:
+        return int(await self._redis.get(f"internal:queue:{priority}:offset") or 0)
+
+    def _get_scraper_job_key(self, scraper_id: int, run_id: int) -> str:
+        return f"scraper_job:{scraper_id}:{run_id}"
+
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def get_scraper_runs(self, scraper_id: int) -> List[ScraperRun]:
+    async def get_scraper_jobs(self, scraper_id: int) -> list[ScraperJob]:
         keys = [
             key.decode()
-            async for key in self._redis.scan_iter(f"scraper_run:{scraper_id}:*")
+            async for key in self._redis.scan_iter(f"scraper_job:{scraper_id}:*")
         ]
         return sorted(
-            [ScraperRun.parse_raw(run) for run in await self._redis.mget(keys)],
+            [ScraperJob.parse_raw(run) for run in await self._redis.mget(keys)],
             key=lambda x: x.id,
         )
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def add_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
-        if not await self._redis.exists(f"scraper:{scraper_run.scraper.id}"):
-            raise ScraperNotFoundError()
-        scraper_run.id = (
-            scraper_run.id
-            if scraper_run.id and scraper_run.id > 0
+    async def add_scraper_job(self, scraper_job: ScraperJob) -> ScraperJob:
+        scraper_job.id = (
+            scraper_job.id
+            if scraper_job.id and scraper_job.id > 0
             else await self._generate_id()
         )
-        job_id = await self._generate_queue_id(scraper_run.priority)
+        job_id = await self._generate_queue_id(scraper_job.priority)
 
         pipeline = self._redis.pipeline()
         pipeline.set(
-            self._get_scraper_run_key(scraper_run.scraper.id, scraper_run.id),
-            scraper_run.json(),
+            self._get_scraper_job_key(scraper_job.scraper.id, scraper_job.id),
+            scraper_job.json(),
         )
         pipeline.set(
-            f"queue:{scraper_run.priority}:{job_id}",
-            scraper_run.json(),
+            f"queue:{scraper_job.priority}:{job_id}",
+            scraper_job.json(),
         )
         await pipeline.execute()
 
-        return scraper_run
+        return scraper_job
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
-        if not await self._redis.exists(self._get_scraper_key(scraper_run.scraper.id)):
-            raise ScraperNotFoundError()
+    async def update_scraper_job(self, scraper_job: ScraperJob) -> ScraperJob:
         if not await self._redis.exists(
-            self._get_scraper_run_key(scraper_run.scraper.id, scraper_run.id)
+            self._get_scraper_job_key(scraper_job.scraper.id, scraper_job.id)
         ):
-            raise ScraperRunNotFoundError()
+            raise ScraperJobNotFoundError()
         await self._redis.set(
-            self._get_scraper_run_key(scraper_run.scraper.id, scraper_run.id),
-            scraper_run.json(),
+            self._get_scraper_job_key(scraper_job.scraper.id, scraper_job.id),
+            scraper_job.json(),
         )
-        return scraper_run
+        return scraper_job
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def dequeue_scraper_run(
-        self, priority: ScraperRunPriority
-    ) -> ScraperRun | None:
+    async def dequeue_scraper_job(
+        self, priority: ScraperJobPriority
+    ) -> ScraperJob | None:
         offset = await self._get_queue_offset(priority)
         last_id = await self._get_queue_last_id(priority)
         if offset < last_id:
@@ -172,40 +195,49 @@ class RedisStorage(Storage):
             pipeline.getdel(f"queue:{priority}:{offset+1}")
             pipeline.incr(f"internal:queue:{priority}:offset")
             run, _ = await pipeline.execute()
-            return ScraperRun.parse_raw(run)
+            return ScraperJob.parse_raw(run)
         return None
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def get_queue_len(self, priority: ScraperRunPriority) -> int:
+    async def get_queue_len(self, priority: ScraperJobPriority) -> int:
         offset = await self._get_queue_offset(priority)
         last_id = await self._get_queue_last_id(priority)
         return last_id - offset
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
+    async def delete_old_scraper_jobs(self, keep_last: int = 50) -> None:
         to_delete = []
-        for scraper in await self.get_scrapers():
-            runs = await self.get_scraper_runs(scraper.id)
+        for scraper in await self._scrapers_storage.get_scrapers():
+            runs = await self.get_scraper_jobs(scraper.id)
             if len(runs) > keep_last:
                 to_delete += [
-                    self._get_scraper_run_key(scraper.id, run.id)
+                    self._get_scraper_job_key(scraper.id, run.id)
                     for run in runs[:-keep_last]
                 ]
         await self._redis.delete(*to_delete)
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def get_scraper_run(self, scraper_id: int, scraper_run_id: int) -> ScraperRun:
-        if not await self._redis.exists(self._get_scraper_key(scraper_id)):
-            raise ScraperNotFoundError()
-        scraper_run = await self._redis.get(
-            self._get_scraper_run_key(scraper_id, scraper_run_id),
+    async def get_scraper_job(self, scraper_id: int, scraper_job_id: int) -> ScraperJob:
+        scraper_job = await self._redis.get(
+            self._get_scraper_job_key(scraper_id, scraper_job_id),
         )
-        if not scraper_run:
-            raise ScraperRunNotFoundError()
-        return ScraperRun.parse_raw(scraper_run)
+        if not scraper_job:
+            raise ScraperJobNotFoundError()
+        return ScraperJob.parse_raw(scraper_job)
+
+
+class RedisLeaseStorage(LeaseStorage):
+    """Redis storage for leases. Should only be used for development purposes"""
+
+    def __init__(self, redis: Redis) -> None:
+        """
+        Args:
+            redis (Redis): Async redis client
+        """
+        self._redis = redis
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
@@ -241,8 +273,3 @@ class RedisStorage(Storage):
         lease_owner = await self._redis.get(f"lease:{lease_name}")
         if lease_owner == owner_id:
             await self._redis.delete(f"lease:{lease_name}")
-
-    @count_invocations(subsystem="storage")
-    @measure_latency(subsystem="storage")
-    async def is_read_only(self) -> bool:
-        return self._is_read_only

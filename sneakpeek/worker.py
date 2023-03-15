@@ -5,7 +5,7 @@ from datetime import timedelta
 from traceback import format_exc
 from typing import Dict
 
-from sneakpeek.lib.models import ScraperRun
+from sneakpeek.lib.models import ScraperJob
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.metrics import count_invocations, measure_latency, replicas_gauge
 from sneakpeek.runner import RunnerABC
@@ -22,7 +22,7 @@ class WorkerABC(ABC):
 
 
 class Worker(WorkerABC):
-    """Sneakpeeker worker - consumes scraper runs queue and runs scapers logic"""
+    """Sneakpeeker worker - consumes scraper jobs queue and executes scapers logic"""
 
     def __init__(
         self,
@@ -44,18 +44,18 @@ class Worker(WorkerABC):
         self._lock = Lock()
         self._runner = runner
         self._queue = queue
-        self._active: Dict[int, ScraperRun] = {}
+        self._active: Dict[int, ScraperJob] = {}
         self._max_concurrency = max_concurrency
 
     @count_invocations(subsystem="worker")
-    async def _execute_scraper(self, scraper_run: ScraperRun) -> None:
-        self._logger.info(f"Executing scraper run id={scraper_run.id}")
+    async def _execute_scraper(self, scraper_job: ScraperJob) -> None:
+        self._logger.info(f"Executing scraper job id={scraper_job.id}")
         try:
-            await self._runner.run(scraper_run)
+            await self._runner.run(scraper_job)
         except Exception as e:
-            self._logger.error(f"Failed to execute {scraper_run.id}: {e}")
-            self._logger.debug(f"Failed to execute {scraper_run.id}: {format_exc()}")
-        del self._active[scraper_run.id]
+            self._logger.error(f"Failed to execute {scraper_job.id}: {e}")
+            self._logger.debug(f"Failed to execute {scraper_job.id}: {format_exc()}")
+        del self._active[scraper_job.id]
 
     @measure_latency(subsystem="worker")
     @count_invocations(subsystem="worker")

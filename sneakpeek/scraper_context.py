@@ -7,8 +7,8 @@ from typing import Any, Callable
 import aiohttp
 
 from sneakpeek.lib.errors import (
-    ScraperRunPingFinishedError,
-    ScraperRunPingNotStartedError,
+    ScraperJobPingFinishedError,
+    ScraperJobPingNotStartedError,
 )
 from sneakpeek.scraper_config import ScraperConfig
 
@@ -187,12 +187,12 @@ class ScraperContext:
             return
         try:
             await self.ping_session_func()
-        except ScraperRunPingNotStartedError as e:
+        except ScraperJobPingNotStartedError as e:
             self._logger.error(
                 f"Failed to ping PENDING scraper run because due to some infra error: {e}"
             )
             raise
-        except ScraperRunPingFinishedError as e:
+        except ScraperJobPingFinishedError as e:
             self._logger.error(
                 f"Failed to ping scraper run because seems like it's been killed: {e}"
             )

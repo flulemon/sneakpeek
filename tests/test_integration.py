@@ -7,13 +7,21 @@ from fakeredis.aioredis import FakeRedis
 
 from sneakpeek.lib.models import (
     Scraper,
-    ScraperRunPriority,
-    ScraperRunStatus,
+    ScraperJobPriority,
+    ScraperJobStatus,
     ScraperSchedule,
 )
-from sneakpeek.lib.storage.base import Storage
-from sneakpeek.lib.storage.in_memory_storage import InMemoryStorage
-from sneakpeek.lib.storage.redis_storage import RedisStorage
+from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
+from sneakpeek.lib.storage.in_memory_storage import (
+    InMemoryLeaseStorage,
+    InMemoryScraperJobsStorage,
+    InMemoryScrapersStorage,
+)
+from sneakpeek.lib.storage.redis_storage import (
+    RedisLeaseStorage,
+    RedisScraperJobsStorage,
+    RedisScrapersStorage,
+)
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
@@ -56,13 +64,13 @@ def scrapers() -> list[Scraper]:
 
 
 @pytest.fixture
-def in_memory_storage(scrapers: list[Scraper]) -> Storage:
-    return InMemoryStorage(scrapers=scrapers)
+def in_memory_scrapers_storage(scrapers: list[Scraper]) -> ScrapersStorage:
+    return InMemoryScrapersStorage(scrapers=scrapers)
 
 
 @pytest.fixture
-def redis_storage(scrapers: list[Scraper]) -> Storage:
-    storage = RedisStorage(FakeRedis())
+def redis_scrapers_storage(scrapers: list[Scraper]) -> ScrapersStorage:
+    storage = RedisScrapersStorage(FakeRedis())
     loop = asyncio.get_event_loop()
     for scraper in scrapers:
         loop.run_until_complete(storage.create_scraper(scraper))
@@ -71,19 +79,65 @@ def redis_storage(scrapers: list[Scraper]) -> Storage:
 
 @pytest.fixture(
     params=[
-        pytest.lazy_fixture(in_memory_storage.__name__),
-        pytest.lazy_fixture(redis_storage.__name__),
+        pytest.lazy_fixture(in_memory_scrapers_storage.__name__),
+        pytest.lazy_fixture(redis_scrapers_storage.__name__),
     ]
 )
-def storage(request) -> Storage:
+def scrapers_storage(request) -> ScrapersStorage:
     return request.param
 
 
 @pytest.fixture
-def server_with_scheduler(storage: Storage) -> SneakpeekServer:
+def in_memory_jobs_storage() -> ScraperJobsStorage:
+    return InMemoryScraperJobsStorage()
+
+
+@pytest.fixture
+def redis_jobs_storage(scrapers_storage: ScrapersStorage) -> ScraperJobsStorage:
+    return RedisScraperJobsStorage(FakeRedis(), scrapers_storage)
+
+
+@pytest.fixture(
+    params=[
+        pytest.lazy_fixture(in_memory_jobs_storage.__name__),
+        pytest.lazy_fixture(redis_jobs_storage.__name__),
+    ]
+)
+def jobs_storage(request) -> ScrapersStorage:
+    return request.param
+
+
+@pytest.fixture
+def in_memory_lease_storage() -> LeaseStorage:
+    return InMemoryLeaseStorage()
+
+
+@pytest.fixture
+def redis_lease_storage() -> LeaseStorage:
+    return RedisLeaseStorage(FakeRedis())
+
+
+@pytest.fixture(
+    params=[
+        pytest.lazy_fixture(in_memory_lease_storage.__name__),
+        pytest.lazy_fixture(redis_lease_storage.__name__),
+    ]
+)
+def lease_storage(request) -> LeaseStorage:
+    return request.param
+
+
+@pytest.fixture
+def server_with_scheduler(
+    scrapers_storage: ScrapersStorage,
+    jobs_storage: ScraperJobsStorage,
+    lease_storage: LeaseStorage,
+) -> SneakpeekServer:
     return SneakpeekServer(
         handlers=[TestScraper()],
-        storage=storage,
+        scrapers_storage=scrapers_storage,
+        jobs_storage=jobs_storage,
+        lease_storage=lease_storage,
         run_api=False,
         scheduler_storage_poll_delay=timedelta(seconds=1),
         expose_metrics=False,
@@ -91,10 +145,16 @@ def server_with_scheduler(storage: Storage) -> SneakpeekServer:
 
 
 @pytest.fixture
-def server_with_worker_only(storage: Storage) -> SneakpeekServer:
+def server_with_worker_only(
+    scrapers_storage: ScrapersStorage,
+    jobs_storage: ScraperJobsStorage,
+    lease_storage: LeaseStorage,
+) -> SneakpeekServer:
     return SneakpeekServer(
         handlers=[TestScraper()],
-        storage=storage,
+        scrapers_storage=scrapers_storage,
+        jobs_storage=jobs_storage,
+        lease_storage=lease_storage,
         run_api=False,
         run_scheduler=False,
         worker_max_concurrency=1,
@@ -105,23 +165,23 @@ def server_with_worker_only(storage: Storage) -> SneakpeekServer:
 @pytest.mark.asyncio
 async def test_scraper_schedules_and_completes(
     server_with_scheduler: SneakpeekServer,
-    storage: Storage,
+    jobs_storage: ScraperJobsStorage,
 ):
     try:
         server_with_scheduler.serve(blocking=False)
         with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await asyncio.sleep(MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN)
-            runs = await storage.get_scraper_runs(SCRAPER_1_ID)
-            assert len(runs) > 0, "Expected scraper to be run at least once"
-            successful_runs = [
-                run for run in runs if run.status == ScraperRunStatus.SUCCEEDED
+            jobs = await jobs_storage.get_scraper_jobs(SCRAPER_1_ID)
+            assert len(jobs) > 0, "Expected scraper to be run at least once"
+            successful_jobs = [
+                run for run in jobs if run.status == ScraperJobStatus.SUCCEEDED
             ]
             assert (
-                len(successful_runs) > 0
-            ), "Expected at least one successful scraper run"
+                len(successful_jobs) > 0
+            ), "Expected at least one successful scraper job"
             assert (
-                successful_runs[0].finished_at is not None
-            ), "Expected scraper run to have finished ts"
+                successful_jobs[0].finished_at is not None
+            ), "Expected scraper job to have finished ts"
             mocked_request.assert_awaited_with(TEST_URL)
     finally:
         server_with_scheduler.stop()
@@ -130,52 +190,54 @@ async def test_scraper_schedules_and_completes(
 @pytest.mark.asyncio
 async def test_scraper_completes_on_request(
     server_with_worker_only: SneakpeekServer,
-    storage: Storage,
+    jobs_storage: ScraperJobsStorage,
 ):
     try:
         server_with_worker_only.serve(blocking=False)
         with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await server_with_worker_only._queue.enqueue(
                 SCRAPER_1_ID,
-                ScraperRunPriority.HIGH,
+                ScraperJobPriority.HIGH,
             )
             await asyncio.sleep(2)
-            runs = await storage.get_scraper_runs(SCRAPER_1_ID)
-            assert len(runs) == 1, "Expected scraper to be run once"
+            jobs = await jobs_storage.get_scraper_jobs(SCRAPER_1_ID)
+            assert len(jobs) == 1, "Expected scraper to be run once"
             assert (
-                runs[0].status == ScraperRunStatus.SUCCEEDED
-            ), "Expected at least one successful scraper run"
+                jobs[0].status == ScraperJobStatus.SUCCEEDED
+            ), "Expected at least one successful scraper job"
             assert (
-                runs[0].finished_at is not None
-            ), "Expected scraper run to have finished ts"
+                jobs[0].finished_at is not None
+            ), "Expected scraper job to have finished ts"
             mocked_request.assert_awaited_once_with(TEST_URL)
     finally:
         server_with_worker_only.stop()
 
 
 @pytest.mark.asyncio
-async def test_runs_are_executed_according_to_priority(
+async def test_jobs_are_executed_according_to_priority(
     server_with_worker_only: SneakpeekServer,
-    storage: Storage,
+    jobs_storage: ScraperJobsStorage,
 ):
     try:
         high_pri_job = await server_with_worker_only._queue.enqueue(
             SCRAPER_1_ID,
-            ScraperRunPriority.HIGH,
+            ScraperJobPriority.HIGH,
         )
         utmost_pri_job = await server_with_worker_only._queue.enqueue(
             SCRAPER_2_ID,
-            ScraperRunPriority.UTMOST,
+            ScraperJobPriority.UTMOST,
         )
         server_with_worker_only.serve(blocking=False)
         with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
             await asyncio.sleep(3)
-            high_pri_job = await storage.get_scraper_run(SCRAPER_1_ID, high_pri_job.id)
-            utmost_pri_job = await storage.get_scraper_run(
+            high_pri_job = await jobs_storage.get_scraper_job(
+                SCRAPER_1_ID, high_pri_job.id
+            )
+            utmost_pri_job = await jobs_storage.get_scraper_job(
                 SCRAPER_2_ID, utmost_pri_job.id
             )
-            assert high_pri_job.status == ScraperRunStatus.SUCCEEDED
-            assert utmost_pri_job.status == ScraperRunStatus.SUCCEEDED
+            assert high_pri_job.status == ScraperJobStatus.SUCCEEDED
+            assert utmost_pri_job.status == ScraperJobStatus.SUCCEEDED
             assert utmost_pri_job.finished_at < high_pri_job.finished_at
             assert mocked_request.call_count == 2
             mocked_request.assert_awaited_with(TEST_URL)

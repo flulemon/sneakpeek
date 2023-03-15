@@ -6,26 +6,26 @@ class ScraperNotFoundError(jsonrpc.BaseError):
     MESSAGE = "Scraper not found"
 
 
-class ScraperRunNotFoundError(jsonrpc.BaseError):
+class ScraperJobNotFoundError(jsonrpc.BaseError):
     CODE = 5001
-    MESSAGE = "Scraper run not found"
+    MESSAGE = "Scraper job not found"
 
 
 class ScraperHasActiveRunError(jsonrpc.BaseError):
     CODE = 10000
-    MESSAGE = "Scraper has active runs"
+    MESSAGE = "Scraper has active jobs"
 
 
-class ScraperRunPingNotStartedError(jsonrpc.BaseError):
+class ScraperJobPingNotStartedError(jsonrpc.BaseError):
     CODE = 10001
-    MESSAGE = "Failed to ping not started scraper run"
+    MESSAGE = "Failed to ping not started scraper job"
 
 
-class ScraperRunPingFinishedError(jsonrpc.BaseError):
+class ScraperJobPingFinishedError(jsonrpc.BaseError):
     CODE = 10002
-    MESSAGE = "Tried to ping finished scraper run"
+    MESSAGE = "Tried to ping finished scraper job"
 
 
 class UnknownScraperHandlerError(jsonrpc.BaseError):
     CODE = 10002
-    MESSAGE = "Tried to ping finished scraper run"
+    MESSAGE = "Unknown scraper handler"

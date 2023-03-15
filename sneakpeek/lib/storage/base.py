@@ -2,11 +2,19 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import List
 
-from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
+from sneakpeek.lib.models import Lease, Scraper, ScraperJob, ScraperJobPriority
 
 
-class Storage(ABC):
-    """Sneakpeeker storage abstract class"""
+class ScrapersStorage(ABC):
+    """Sneakpeeker storage scraper storage abstract class"""
+
+    @abstractmethod
+    async def is_read_only(self) -> bool:
+        """
+        Returns:
+            bool: Whether the storage allows modifiying scrapers list and metadata
+        """
+        ...
 
     @abstractmethod
     async def search_scrapers(
@@ -92,89 +100,97 @@ class Storage(ABC):
         """
         ...
 
+
+class ScraperJobsStorage(ABC):
+    """Sneakpeeker storage scraper jobs storage abstract class"""
+
     @abstractmethod
-    async def get_scraper_runs(self, scraper_id: int) -> List[ScraperRun]:
+    async def get_scraper_jobs(self, scraper_id: int) -> List[ScraperJob]:
         """
         Args:
             scraper_id (int): Scraper ID
 
         Returns:
-            List[ScraperRun]: List of scraper runs
+            List[ScraperJob]: List of scraper jobs
         """
         ...
 
     @abstractmethod
-    async def add_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
+    async def add_scraper_job(self, scraper_job: ScraperJob) -> ScraperJob:
         """
         Args:
-            scraper_run (ScraperRun): Scraper run to add
+            scraper_job (ScraperJob): scraper job to add
 
         Returns:
-            ScraperRun: Created scraper run
+            ScraperJob: Created scraper job
         """
         ...
 
     @abstractmethod
-    async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
+    async def update_scraper_job(self, scraper_job: ScraperJob) -> ScraperJob:
         """
         Args:
-            scraper_run (ScraperRun): Scraper run to update
+            scraper_job (ScraperJob): scraper job to update
 
         Returns:
-            ScraperRun: Updated scraper run
+            ScraperJob: Updated scraper job
         """
         ...
 
     @abstractmethod
-    async def get_scraper_run(self, scraper_id: int, scraper_run_id: int) -> ScraperRun:
-        """Get scraper run by ID.
+    async def get_scraper_job(self, scraper_id: int, scraper_job_id: int) -> ScraperJob:
+        """Get scraper job by ID.
         Throws :py:class:`ScraperNotFoundError <sneakpeek.lib.errors.ScraperNotFoundError>` if scraper doesn't exist
-        Throws :py:class:`ScraperRunNotFoundError <sneakpeek.lib.errors.ScraperRunNotFoundError>` if scraper run doesn't exist
+        Throws :py:class:`ScraperJobNotFoundError <sneakpeek.lib.errors.ScraperJobNotFoundError>` if scraper job doesn't exist
 
         Args:
             scraper_id (int): Scraper ID
-            scraper_run_id (int): Scraper run ID
+            scraper_job_id (int): scraper job ID
 
         Returns:
-            ScraperRun: Found scraper run
+            ScraperJob: Found scraper job
         """
         ...
 
     @abstractmethod
-    async def dequeue_scraper_run(
+    async def dequeue_scraper_job(
         self,
-        priority: ScraperRunPriority,
-    ) -> ScraperRun | None:
-        """Try to dequeue pending scraper run of given priority
+        priority: ScraperJobPriority,
+    ) -> ScraperJob | None:
+        """Try to dequeue pending scraper job of given priority
 
         Args:
-            priority (ScraperRunPriority): Queue priority
+            priority (ScraperJobPriority): Queue priority
 
         Returns:
-            ScraperRun | None: First pending scraper run or None if the queue is empty
+            ScraperJob | None: First pending scraper job or None if the queue is empty
         """
         ...
 
     @abstractmethod
-    async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
-        """Delete old historical scraper runs
+    async def delete_old_scraper_jobs(self, keep_last: int = 50) -> None:
+        """Delete old historical scraper jobs
 
         Args:
-            keep_last (int, optional): How many historical scraper runs to keep. Defaults to 50.
+            keep_last (int, optional): How many historical scraper jobs to keep. Defaults to 50.
         """
         ...
 
     @abstractmethod
-    async def get_queue_len(self, priority: ScraperRunPriority) -> int:
-        """Get number of pending scraper runs in the queue
+    async def get_queue_len(self, priority: ScraperJobPriority) -> int:
+        """Get number of pending scraper jobs in the queue
 
         Args:
-            priority (ScraperRunPriority): Queue priority
+            priority (ScraperJobPriority): Queue priority
 
         Returns:
-            int: Number of pending scraper runs in the queue
+            int: Number of pending scraper jobs in the queue
         """
         ...
+
+
+class LeaseStorage(ABC):
+    """Sneakpeeker lease storage abstract class"""
 
     @abstractmethod
     async def maybe_acquire_lease(
@@ -202,13 +218,5 @@ class Storage(ABC):
         Args:
             lease_name (str): Lease name (resource name to be unlocked)
             owner_id (str): ID of the acquirer
-        """
-        ...
-
-    @abstractmethod
-    async def is_read_only(self) -> bool:
-        """
-        Returns:
-            bool: Whether the storage allows modifiying scrapers list and metadata
         """
         ...

@@ -4,41 +4,43 @@ from datetime import datetime, timedelta
 from itertools import count
 from typing import Iterator
 
-from sneakpeek.lib.errors import ScraperNotFoundError, ScraperRunNotFoundError
-from sneakpeek.lib.models import Lease, Scraper, ScraperRun, ScraperRunPriority
+from sneakpeek.lib.errors import ScraperJobNotFoundError, ScraperNotFoundError
+from sneakpeek.lib.models import Lease, Scraper, ScraperJob, ScraperJobPriority
 from sneakpeek.metrics import count_invocations, measure_latency
 
-from .base import Storage
+from .base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 
 
-class InMemoryStorage(Storage):
-    """In-memory storage implementation. Should only be used for local debugging"""
+class InMemoryScrapersStorage(ScrapersStorage):
+    """In-memory storage implementation"""
 
     def __init__(
         self,
         scrapers: list[Scraper] | None = None,
-        is_read_only: bool = False,
+        is_read_only: bool = True,
     ) -> None:
         """
         Args:
             scrapers (list[Scraper] | None, optional): List of pre-defined scrapers. Defaults to None.
-            is_read_only (bool, optional): Whether to allow modifications of the scrapers list. Defaults to False.
+            is_read_only (bool, optional): Whether to allow modifications of the scrapers list. Set to true only for development. Defaults to True.
         """
         self._logger = logging.getLogger(__name__)
         self._scrapers: dict[int, Scraper] = {
             scraper.id: scraper for scraper in scrapers or []
         }
-        self._scraper_runs: dict[int, dict[int, ScraperRun]] = {}
-        self._queues: dict[ScraperRunPriority, list[ScraperRun]] = {}
         self._id_generator: Iterator[int] = count(1)
         self._lock = Lock()
-        self._leases: dict[str, Lease] = {}
         self._is_read_only = is_read_only
 
     def _generate_id(self) -> int:
         for id in self._id_generator:
-            if id not in self._scrapers and id not in self._scraper_runs:
+            if id not in self._scrapers:
                 return id
+
+    @count_invocations(subsystem="storage")
+    @measure_latency(subsystem="storage")
+    async def is_read_only(self) -> bool:
+        return self._is_read_only
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
@@ -111,15 +113,31 @@ class InMemoryStorage(Storage):
             del self._scrapers[id]
             return scraper_to_delete
 
+
+class InMemoryScraperJobsStorage(ScraperJobsStorage):
+    """In memory storage for scraper jobs. Should only be used for development purposes"""
+
+    def __init__(self) -> None:
+        self._logger = logging.getLogger(__name__)
+        self._scraper_jobs: dict[int, dict[int, ScraperJob]] = {}
+        self._queues: dict[ScraperJobPriority, list[ScraperJob]] = {}
+        self._id_generator: Iterator[int] = count(1)
+        self._lock = Lock()
+
+    def _generate_id(self) -> int:
+        for id in self._id_generator:
+            for scraper_id, scraper_jobs in self._scraper_jobs.items():
+                if id == scraper_id or id in scraper_jobs:
+                    continue
+            return id
+
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def get_scraper_runs(self, id: int) -> list[ScraperRun]:
+    async def get_scraper_jobs(self, id: int) -> list[ScraperJob]:
         async with self._lock:
-            if id not in self._scrapers:
-                raise ScraperNotFoundError(id)
             return list(
                 sorted(
-                    self._scraper_runs.get(id, {}).values(),
+                    self._scraper_jobs.get(id, {}).values(),
                     key=lambda x: x.id,
                     reverse=True,
                 )
@@ -127,64 +145,58 @@ class InMemoryStorage(Storage):
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def add_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
+    async def add_scraper_job(self, scraper_job: ScraperJob) -> ScraperJob:
         async with self._lock:
-            scraper_run.id = (
-                scraper_run.id
-                if scraper_run.id and scraper_run.id > 0
+            scraper_job.id = (
+                scraper_job.id
+                if scraper_job.id and scraper_job.id > 0
                 else self._generate_id()
             )
-            if scraper_run.scraper.id not in self._scrapers:
-                raise ScraperRunNotFoundError(scraper_run.scraper.id)
 
-            if scraper_run.scraper.id not in self._scraper_runs:
-                self._scraper_runs[scraper_run.scraper.id] = {}
+            if scraper_job.scraper.id not in self._scraper_jobs:
+                self._scraper_jobs[scraper_job.scraper.id] = {}
 
-            if scraper_run.id in self._scraper_runs[scraper_run.scraper.id]:
+            if scraper_job.id in self._scraper_jobs[scraper_job.scraper.id]:
                 self._logger.warning(
-                    f"Will rewrite existing scraper run: {self._scraper_runs[scraper_run.scraper.id][scraper_run.id]} with {scraper_run}"
+                    f"Will rewrite existing scraper run: {self._scraper_jobs[scraper_job.scraper.id][scraper_job.id]} with {scraper_job}"
                 )
 
-            self._scraper_runs[scraper_run.scraper.id][scraper_run.id] = scraper_run
-            if scraper_run.priority not in self._queues:
-                self._queues[scraper_run.priority] = []
-            self._queues[scraper_run.priority].append(scraper_run)
-            return scraper_run
+            self._scraper_jobs[scraper_job.scraper.id][scraper_job.id] = scraper_job
+            if scraper_job.priority not in self._queues:
+                self._queues[scraper_job.priority] = []
+            self._queues[scraper_job.priority].append(scraper_job)
+            return scraper_job
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def update_scraper_run(self, scraper_run: ScraperRun) -> ScraperRun:
+    async def update_scraper_job(self, scraper_job: ScraperJob) -> ScraperJob:
         async with self._lock:
-            if scraper_run.scraper.id not in self._scrapers:
-                raise ScraperNotFoundError(scraper_run.scraper.id)
             if (
-                not self._scraper_runs.get(scraper_run.scraper.id)
-                or scraper_run.id not in self._scraper_runs[scraper_run.scraper.id]
+                not self._scraper_jobs.get(scraper_job.scraper.id)
+                or scraper_job.id not in self._scraper_jobs[scraper_job.scraper.id]
             ):
-                raise ScraperRunNotFoundError(scraper_run.id)
+                raise ScraperJobNotFoundError(scraper_job.id)
 
-            self._scraper_runs[scraper_run.scraper.id][scraper_run.id] = scraper_run
-            return scraper_run
+            self._scraper_jobs[scraper_job.scraper.id][scraper_job.id] = scraper_job
+            return scraper_job
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def get_scraper_run(self, scraper_id: int, scraper_run_id: int) -> ScraperRun:
+    async def get_scraper_job(self, scraper_id: int, scraper_job_id: int) -> ScraperJob:
         async with self._lock:
-            if scraper_id not in self._scrapers:
-                raise ScraperNotFoundError(scraper_id)
             if (
-                not self._scraper_runs.get(scraper_id)
-                or scraper_run_id not in self._scraper_runs[scraper_id]
+                not self._scraper_jobs.get(scraper_id)
+                or scraper_job_id not in self._scraper_jobs[scraper_id]
             ):
-                raise ScraperRunNotFoundError(scraper_run_id)
-            return self._scraper_runs[scraper_id][scraper_run_id]
+                raise ScraperJobNotFoundError(scraper_job_id)
+            return self._scraper_jobs[scraper_id][scraper_job_id]
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def dequeue_scraper_run(
+    async def dequeue_scraper_job(
         self,
-        priority: ScraperRunPriority,
-    ) -> ScraperRun | None:
+        priority: ScraperJobPriority,
+    ) -> ScraperJob | None:
         async with self._lock:
             if not self._queues.get(priority):
                 return None
@@ -192,24 +204,33 @@ class InMemoryStorage(Storage):
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def get_queue_len(self, priority: ScraperRunPriority) -> int:
+    async def get_queue_len(self, priority: ScraperJobPriority) -> int:
         return len(self._queues.get(priority) or [])
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")
-    async def delete_old_scraper_runs(self, keep_last: int = 50) -> None:
+    async def delete_old_scraper_jobs(self, keep_last: int = 50) -> None:
         async with self._lock:
-            self._scraper_runs = {
+            self._scraper_jobs = {
                 scraper_id: {
-                    scraper_run.id: scraper_run
-                    for scraper_run in sorted(
-                        scraper_runs.values(),
+                    scraper_job.id: scraper_job
+                    for scraper_job in sorted(
+                        scraper_jobs.values(),
                         key=lambda item: item.id,
                         reverse=True,
                     )[:keep_last]
                 }
-                for scraper_id, scraper_runs in self._scraper_runs.items()
+                for scraper_id, scraper_jobs in self._scraper_jobs.items()
             }
+
+
+class InMemoryLeaseStorage(LeaseStorage):
+    """In memory storage for leases. Should only be used for development purposes"""
+
+    def __init__(self) -> None:
+        self._logger = logging.getLogger(__name__)
+        self._lock = Lock()
+        self._leases: dict[str, Lease] = {}
 
     def _can_acquire_lease(self, lease_name: str, owner_id: str) -> bool:
         existing_lease = self._leases.get(lease_name)
@@ -246,8 +267,3 @@ class InMemoryStorage(Storage):
                 return
             if self._can_acquire_lease(lease_name, owner_id):
                 del self._leases[lease_name]
-
-    @count_invocations(subsystem="storage")
-    @measure_latency(subsystem="storage")
-    async def is_read_only(self) -> bool:
-        return self._is_read_only

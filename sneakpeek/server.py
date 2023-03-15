@@ -9,7 +9,7 @@ import uvicorn
 
 from sneakpeek.api import create_api
 from sneakpeek.lib.queue import Queue
-from sneakpeek.lib.storage.base import Storage
+from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 from sneakpeek.runner import Runner
 from sneakpeek.scheduler import Scheduler
 from sneakpeek.scraper_context import Plugin
@@ -35,7 +35,9 @@ class SneakpeekServer:
     def __init__(
         self,
         handlers: list[ScraperHandler],
-        storage: Storage,
+        scrapers_storage: ScrapersStorage,
+        jobs_storage: ScraperJobsStorage,
+        lease_storage: LeaseStorage,
         run_api: bool = True,
         run_worker: bool = True,
         run_scheduler: bool = True,
@@ -52,7 +54,9 @@ class SneakpeekServer:
 
         Args:
             handlers (list[ScraperHandler]): List of handlers that implement scraper logic
-            storage (Storage): Sneakpeek storage implementation
+            scrapers_storage (ScrapersStorage): Scrapers storage
+            jobs_storage (ScraperJobsStorage): Jobs storage
+            lease_storage (LeaseStorage): Lease storage
             run_api (bool, optional): Whether to run API service. Defaults to True.
             run_worker (bool, optional): Whether to run worker service. Defaults to True.
             run_scheduler (bool, optional): Whether to run scheduler service. Defaults to True.
@@ -64,22 +68,31 @@ class SneakpeekServer:
             plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Can be omitted if run_worker is False. Defaults to None.
             metrics_port (int, optional): Port which is used to expose metric. Defaults to 9090.
         """
-        self._storage = storage
-        self._queue = Queue(self._storage)
+        self._scrapers_storage = scrapers_storage
+        self._jobs_storage = jobs_storage
+        self._lease_storage = lease_storage
+        self._queue = Queue(self._scrapers_storage, self._jobs_storage)
         self._scheduler = Scheduler(
-            self._storage,
+            self._scrapers_storage,
+            self._jobs_storage,
+            self._lease_storage,
             self._queue,
             storage_poll_frequency=scheduler_storage_poll_delay,
             lease_duration=scheduler_lease_duration,
         )
-        self._runner = Runner(handlers, self._queue, self._storage, plugins)
+        self._runner = Runner(handlers, self._queue, self._jobs_storage, plugins)
         self._worker = Worker(
             self._runner,
             self._queue,
             max_concurrency=worker_max_concurrency,
         )
         self._api_config = uvicorn.Config(
-            create_api(self._storage, self._queue, handlers),
+            create_api(
+                self._scrapers_storage,
+                self._jobs_storage,
+                self._queue,
+                handlers,
+            ),
             host="0.0.0.0",
             port=api_port,
             log_config=None,

@@ -9,12 +9,12 @@ from pydantic import BaseModel
 from sneakpeek.lib.errors import ScraperHasActiveRunError, ScraperNotFoundError
 from sneakpeek.lib.models import (
     Scraper,
-    ScraperRun,
-    ScraperRunPriority,
+    ScraperJob,
+    ScraperJobPriority,
     ScraperSchedule,
 )
 from sneakpeek.lib.queue import Queue, QueueABC
-from sneakpeek.lib.storage.base import Storage
+from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
 from sneakpeek.scraper_handler import ScraperHandler
 
 
@@ -23,8 +23,9 @@ class Priority(BaseModel):
     value: int
 
 
-def get_public_api_entrypoint(
-    storage: Storage,
+def get_api_entrypoint(
+    scrapers_storage: ScrapersStorage,
+    jobs_storage: ScraperJobsStorage,
     queue: Queue,
     handlers: list[ScraperHandler],
 ) -> jsonrpc.Entrypoint:
@@ -47,38 +48,38 @@ def get_public_api_entrypoint(
         max_items: int | None = Body(...),
         last_id: int | None = Body(...),
     ) -> list[Scraper]:
-        return await storage.search_scrapers(name_filter, max_items, last_id)
+        return await scrapers_storage.search_scrapers(name_filter, max_items, last_id)
 
     @entrypoint.method()
     async def get_scrapers() -> list[Scraper]:
-        return await storage.get_scrapers()
+        return await scrapers_storage.get_scrapers()
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     async def get_scraper(id: int = Body(...)) -> Scraper:
-        return await storage.get_scraper(id)
+        return await scrapers_storage.get_scraper(id)
 
     @entrypoint.method()
     async def create_scraper(scraper: Scraper = Body(...)) -> Scraper:
-        return await storage.create_scraper(scraper)
+        return await scrapers_storage.create_scraper(scraper)
 
     @entrypoint.method(errors=[ScraperNotFoundError, ScraperHasActiveRunError])
     async def enqueue_scraper(
         scraper_id: int = Body(...),
-        priority: ScraperRunPriority = Body(...),
-    ) -> ScraperRun:
+        priority: ScraperJobPriority = Body(...),
+    ) -> ScraperJob:
         return await queue.enqueue(scraper_id, priority)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     async def update_scraper(scraper: Scraper = Body(...)) -> Scraper:
-        return await storage.update_scraper(scraper)
+        return await scrapers_storage.update_scraper(scraper)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     async def delete_scraper(id: int = Body(...)) -> Scraper:
-        return await storage.delete_scraper(id)
+        return await scrapers_storage.delete_scraper(id)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
-    async def get_scraper_runs(scraper_id: int = Body(...)) -> list[ScraperRun]:
-        return await storage.get_scraper_runs(scraper_id)
+    async def get_scraper_runs(scraper_id: int = Body(...)) -> list[ScraperJob]:
+        return await jobs_storage.get_scraper_runs(scraper_id)
 
     @entrypoint.method()
     async def get_scraper_handlers() -> list[str]:
@@ -92,18 +93,19 @@ def get_public_api_entrypoint(
     async def get_priorities() -> list[Priority]:
         return [
             Priority(name=priority.name, value=priority.value)
-            for priority in ScraperRunPriority
+            for priority in ScraperJobPriority
         ]
 
     @entrypoint.method()
     async def is_read_only() -> bool:
-        return await storage.is_read_only()
+        return await scrapers_storage.is_read_only()
 
     return entrypoint
 
 
 def create_api(
-    storage: Storage,
+    scrapers_storage: ScrapersStorage,
+    jobs_storage: ScraperJobsStorage,
     queue: QueueABC,
     handlers: list[ScraperHandler],
 ) -> jsonrpc.API:
@@ -122,7 +124,14 @@ def create_api(
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.bind_entrypoint(get_public_api_entrypoint(storage, queue, handlers))
+    app.bind_entrypoint(
+        get_api_entrypoint(
+            scrapers_storage,
+            jobs_storage,
+            queue,
+            handlers,
+        )
+    )
     app.mount(
         "/",
         StaticFiles(

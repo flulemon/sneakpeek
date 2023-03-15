@@ -24,7 +24,7 @@ class ScraperSchedule(str, Enum):
     CRONTAB = "crontab"  #: Specify crontab when scraper should be scheduled
 
 
-class ScraperRunPriority(Enum):
+class ScraperJobPriority(Enum):
     """Priority of the scraper job"""
 
     UTMOST = 0  #:
@@ -32,7 +32,7 @@ class ScraperRunPriority(Enum):
     NORMAL = 2  #:
 
 
-class ScraperRunStatus(str, Enum):
+class ScraperJobStatus(str, Enum):
     """Scraper job status"""
 
     PENDING = "pending"  #: Scraper job is in the queue
@@ -54,16 +54,16 @@ class Scraper(BaseModel):
     handler: str  #: Name of the scraper handler that implements scraping logic
     config: ScraperConfig  #: Scraper configuration that is passed to the handler
     #: Default priority to enqueue scraper jobs with
-    schedule_priority: ScraperRunPriority = ScraperRunPriority.NORMAL
+    schedule_priority: ScraperJobPriority = ScraperJobPriority.NORMAL
 
 
-class ScraperRun(BaseModel):
+class ScraperJob(BaseModel):
     """Scraper job metadata"""
 
     id: int  #: Job unique identifier
     scraper: Scraper  #: Scraper metadata
-    status: ScraperRunStatus  #: Scraper job status
-    priority: ScraperRunPriority  #: Scraper job priority
+    status: ScraperJobStatus  #: Scraper job status
+    priority: ScraperJobPriority  #: Scraper job priority
     created_at: datetime  #: When the job was created and enqueued
     #: When the job was dequeued and started being processed by the worker
     started_at: datetime | None = None
