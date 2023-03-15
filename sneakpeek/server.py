@@ -64,7 +64,7 @@ class SneakpeekServer:
             worker_max_concurrency (int, optional): Maximum number of concurrently executed scrapers. Defaults to 50.
             api_port (int, optional): Port which is used for API and UI. Defaults to 8080.
             scheduler_storage_poll_delay (timedelta, optional): How much scheduler wait before polling storage for scrapers updates. Defaults to 5 seconds.
-            scheduler_lease_duration (timedelta, optional): How long scheduler lease lasts. Lease is required for scheduler to be able to create new scraper runs. This is needed so at any point of time there's only one active scheduler instance. Defaults to 1 minute.
+            scheduler_lease_duration (timedelta, optional): How long scheduler lease lasts. Lease is required for scheduler to be able to create new scraper jobs. This is needed so at any point of time there's only one active scheduler instance. Defaults to 1 minute.
             plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Can be omitted if run_worker is False. Defaults to None.
             metrics_port (int, optional): Port which is used to expose metric. Defaults to 9090.
         """

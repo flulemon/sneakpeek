@@ -110,7 +110,7 @@ class ScraperContext:
         Args:
             config (ScraperConfig): Scraper configuration
             plugins (list[BeforeRequestPlugin | AfterResponsePlugin] | None, optional): List of available plugins. Defaults to None.
-            ping_session_func (Callable | None, optional): Function that pings scraper run. Defaults to None.
+            ping_session_func (Callable | None, optional): Function that pings scraper job. Defaults to None.
         """
         self.params = config.params
         self.ping_session_func = ping_session_func
@@ -179,26 +179,26 @@ class ScraperContext:
         return response
 
     async def ping_session(self) -> None:
-        """Ping scraper run, so it's not considered dead"""
+        """Ping scraper job, so it's not considered dead"""
         if not self.ping_session_func:
             self._logger.warning(
-                "Tried to ping scraper run, but the function to ping session is None"
+                "Tried to ping scraper job, but the function to ping session is None"
             )
             return
         try:
             await self.ping_session_func()
         except ScraperJobPingNotStartedError as e:
             self._logger.error(
-                f"Failed to ping PENDING scraper run because due to some infra error: {e}"
+                f"Failed to ping PENDING scraper job because due to some infra error: {e}"
             )
             raise
         except ScraperJobPingFinishedError as e:
             self._logger.error(
-                f"Failed to ping scraper run because seems like it's been killed: {e}"
+                f"Failed to ping scraper job because seems like it's been killed: {e}"
             )
             raise
         except Exception as e:
-            self._logger.error(f"Failed to ping scraper run: {e}")
+            self._logger.error(f"Failed to ping scraper job: {e}")
 
     async def get(
         self,

@@ -20,6 +20,6 @@ class ScraperHandler(ABC):
             context (ScraperContext): Scraper context
 
         Returns:
-            str: scraper result that will be persisted in the storage (should be relatively small information to give sense on run result)
+            str: scraper result that will be persisted in the storage (should be relatively small information to give sense on job result)
         """
         ...

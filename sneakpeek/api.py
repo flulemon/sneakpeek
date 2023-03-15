@@ -78,8 +78,8 @@ def get_api_entrypoint(
         return await scrapers_storage.delete_scraper(id)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
-    async def get_scraper_runs(scraper_id: int = Body(...)) -> list[ScraperJob]:
-        return await jobs_storage.get_scraper_runs(scraper_id)
+    async def get_scraper_jobs(scraper_id: int = Body(...)) -> list[ScraperJob]:
+        return await jobs_storage.get_scraper_jobs(scraper_id)
 
     @entrypoint.method()
     async def get_scraper_handlers() -> list[str]:

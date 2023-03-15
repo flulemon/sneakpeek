@@ -24,7 +24,7 @@ scraper_jobs = Counter(
 
 
 class RunnerABC(ABC):
-    """Scraper runner - manages scraper job lifecycle and runss the scraper logic"""
+    """Scraper runner - manages scraper job lifecycle and runs the scraper logic"""
 
     @abstractmethod
     async def run(self, job: ScraperJob) -> None:
@@ -53,7 +53,7 @@ class Runner(RunnerABC):
             handlers (list[ScraperHandler]): List of handlers that implement scraper logic
             queue (Queue): Sneakpeek queue implementation
             storage (Storage): Sneakpeek storage implementation
-            plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper jobner. Defaults to None.
+            plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Defaults to None.
         """
         self._logger = logging.getLogger(__name__)
         self._handlers = {handler.name: handler for handler in handlers}
@@ -82,7 +82,7 @@ class Runner(RunnerABC):
         * Persist scraper job status
 
         Args:
-            job (ScraperRun): Scraper job metadata
+            job (ScraperJob): Scraper job metadata
         """
         delay_histogram.labels(type="time_spent_in_queue").observe(
             (datetime.utcnow() - job.created_at).total_seconds()
