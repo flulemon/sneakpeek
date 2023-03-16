@@ -37,8 +37,8 @@ export function getScraper(id) {
   return rpc("get_scraper", {id: id});
 }
 
-export function getScraperRuns(id) {
-  return rpc("get_scraper_runs", {scraper_id: id});
+export function getScraperJobs(id) {
+  return rpc("get_scraper_jobs", {scraper_id: id});
 }
 
 export function getScraperHandlers() {

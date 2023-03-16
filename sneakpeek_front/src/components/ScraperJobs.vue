@@ -1,9 +1,9 @@
 <template>
-  <q-table :rows="rows" :columns="columns"  class="full-height" title="Scraper runs"
+  <q-table :rows="rows" :columns="columns"  class="full-height" title="Scraper jobs"
            :rows-per-page-options="[0]" :loading="loading" virtual-scroll hide-bottom>
     <template v-slot:body-cell-status="props">
       <q-td :props="props">
-        <scraper-run-status-chip :value="props.value" size="sm" />
+        <scraper-job-status-chip :value="props.value" size="sm" />
       </q-td>
     </template>
     <template v-slot:body-cell-priority="props">
@@ -47,12 +47,12 @@
 
 <script>
 import { date } from 'quasar';
-import { getScraperRuns } from "../api.js";
+import { getScraperJobs } from "../api.js";
 import PriorityChip from './PriorityChip.vue';
-import ScraperRunStatusChip from './ScraperRunStatusChip.vue';
+import ScraperJobStatusChip from './ScraperJobStatusChip.vue';
 
 export default {
-  components: { ScraperRunStatusChip, PriorityChip },
+  components: { ScraperJobStatusChip, PriorityChip },
   name: 'ScraperRuns',
   props: ['id'],
   data() {
@@ -72,10 +72,10 @@ export default {
   },
   created() {
     this.loading = true;
-    this.loadRuns()
+    this.loadJobs()
       .catch((error => this.error = error))
       .finally(() => this.loading = false);
-    this.loader = setInterval(this.loadRuns, 1000);
+    this.loader = setInterval(this.loadJobs, 1000);
   },
   unmounted() {
     clearInterval(this.loader);
@@ -117,8 +117,8 @@ export default {
       const secondsDiff = date.getDateDiff(now, parsed, 'seconds');
       return `${secondsDiff} seconds ago`;
     },
-    loadRuns() {
-      return getScraperRuns(this.id).then((data) => this.rows = data);
+    loadJobs() {
+      return getScraperJobs(this.id).then((data) => this.rows = data);
     }
   }
 }
