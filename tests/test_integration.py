@@ -133,12 +133,12 @@ def server_with_scheduler(
     jobs_storage: ScraperJobsStorage,
     lease_storage: LeaseStorage,
 ) -> SneakpeekServer:
-    return SneakpeekServer(
+    return SneakpeekServer.create(
         handlers=[TestScraper()],
         scrapers_storage=scrapers_storage,
         jobs_storage=jobs_storage,
         lease_storage=lease_storage,
-        run_api=False,
+        with_api=False,
         scheduler_storage_poll_delay=timedelta(seconds=1),
         expose_metrics=False,
     )
@@ -150,13 +150,13 @@ def server_with_worker_only(
     jobs_storage: ScraperJobsStorage,
     lease_storage: LeaseStorage,
 ) -> SneakpeekServer:
-    return SneakpeekServer(
+    return SneakpeekServer.create(
         handlers=[TestScraper()],
         scrapers_storage=scrapers_storage,
         jobs_storage=jobs_storage,
         lease_storage=lease_storage,
-        run_api=False,
-        run_scheduler=False,
+        with_api=False,
+        with_scheduler=False,
         worker_max_concurrency=1,
         expose_metrics=False,
     )
@@ -195,7 +195,7 @@ async def test_scraper_completes_on_request(
     try:
         server_with_worker_only.serve(blocking=False)
         with patch("sneakpeek.scraper_context.ScraperContext.get") as mocked_request:
-            await server_with_worker_only._queue.enqueue(
+            await server_with_worker_only.worker._queue.enqueue(
                 SCRAPER_1_ID,
                 ScraperJobPriority.HIGH,
             )
@@ -219,11 +219,11 @@ async def test_jobs_are_executed_according_to_priority(
     jobs_storage: ScraperJobsStorage,
 ):
     try:
-        high_pri_job = await server_with_worker_only._queue.enqueue(
+        high_pri_job = await server_with_worker_only.worker._queue.enqueue(
             SCRAPER_1_ID,
             ScraperJobPriority.HIGH,
         )
-        utmost_pri_job = await server_with_worker_only._queue.enqueue(
+        utmost_pri_job = await server_with_worker_only.worker._queue.enqueue(
             SCRAPER_2_ID,
             ScraperJobPriority.UTMOST,
         )

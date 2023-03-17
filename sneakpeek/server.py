@@ -4,6 +4,7 @@ from datetime import timedelta
 from signal import SIGINT, SIGTERM
 from traceback import format_exc
 
+import fastapi_jsonrpc as jsonrpc
 import prometheus_client
 import uvicorn
 
@@ -11,10 +12,10 @@ from sneakpeek.api import create_api
 from sneakpeek.lib.queue import Queue
 from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 from sneakpeek.runner import Runner
-from sneakpeek.scheduler import Scheduler
+from sneakpeek.scheduler import Scheduler, SchedulerABC
 from sneakpeek.scraper_context import Plugin
 from sneakpeek.scraper_handler import ScraperHandler
-from sneakpeek.worker import Worker
+from sneakpeek.worker import Worker, WorkerABC
 
 API_DEFAULT_PORT = 8080
 METRICS_DEFAULT_PORT = 9090
@@ -34,13 +35,44 @@ class SneakpeekServer:
 
     def __init__(
         self,
+        worker: WorkerABC | None = None,
+        scheduler: SchedulerABC | None = None,
+        api: jsonrpc.API | None = None,
+        api_port: int = API_DEFAULT_PORT,
+        expose_metrics: bool = True,
+        metrics_port: int = METRICS_DEFAULT_PORT,
+    ) -> None:
+        """
+        Args:
+            worker (WorkerABC | None, optional): Worker that consumes scraper jobs queue. Defaults to None.
+            scheduler (SchedulerABC | None, optional): Scrapers scheduler. Defaults to None.
+            api (jsonrpc.API | None, optional): API to interact with the system. Defaults to None.
+            api_port (int, optional): Port which is used for API and UI. Defaults to 8080.
+            expose_metrics (bool, optional): Whether to expose metrics (prometheus format). Defaults to True.
+            metrics_port (int, optional): Port which is used to expose metric. Defaults to 9090.
+        """
+        self._logger = logging.getLogger(__name__)
+        self.worker = worker
+        self.scheduler = scheduler
+        self.api_config = (
+            uvicorn.Config(api, host="0.0.0.0", port=api_port, log_config=None)
+            if api
+            else None
+        )
+        self.api_server = uvicorn.Server(self.api_config) if api else None
+        self.scheduler = scheduler
+        self.expose_metrics = expose_metrics
+        self.metrics_port = metrics_port
+
+    @staticmethod
+    def create(
         handlers: list[ScraperHandler],
         scrapers_storage: ScrapersStorage,
         jobs_storage: ScraperJobsStorage,
         lease_storage: LeaseStorage,
-        run_api: bool = True,
-        run_worker: bool = True,
-        run_scheduler: bool = True,
+        with_api: bool = True,
+        with_worker: bool = True,
+        with_scheduler: bool = True,
         expose_metrics: bool = True,
         worker_max_concurrency: int = WORKER_DEFAULT_CONCURRENCY,
         api_port: int = API_DEFAULT_PORT,
@@ -48,9 +80,9 @@ class SneakpeekServer:
         scheduler_lease_duration: timedelta = SCHEDULER_DEFAULT_LEASE_DURATION,
         plugins: list[Plugin] | None = None,
         metrics_port: int = METRICS_DEFAULT_PORT,
-    ) -> None:
+    ):
         """
-        Initialize Sneakpeek server
+        Create Sneakpeek server using default API, worker and scheduler implementations
 
         Args:
             handlers (list[ScraperHandler]): List of handlers that implement scraper logic
@@ -68,42 +100,33 @@ class SneakpeekServer:
             plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Can be omitted if run_worker is False. Defaults to None.
             metrics_port (int, optional): Port which is used to expose metric. Defaults to 9090.
         """
-        self._scrapers_storage = scrapers_storage
-        self._jobs_storage = jobs_storage
-        self._lease_storage = lease_storage
-        self._queue = Queue(self._scrapers_storage, self._jobs_storage)
-        self._scheduler = Scheduler(
-            self._scrapers_storage,
-            self._jobs_storage,
-            self._lease_storage,
-            self._queue,
-            storage_poll_frequency=scheduler_storage_poll_delay,
-            lease_duration=scheduler_lease_duration,
+        queue = Queue(scrapers_storage, jobs_storage)
+        scheduler = (
+            Scheduler(
+                scrapers_storage,
+                jobs_storage,
+                lease_storage,
+                queue,
+                scheduler_storage_poll_delay,
+                scheduler_lease_duration,
+            )
+            if with_scheduler
+            else None
         )
-        self._runner = Runner(handlers, self._queue, self._jobs_storage, plugins)
-        self._worker = Worker(
-            self._runner,
-            self._queue,
-            max_concurrency=worker_max_concurrency,
+        runner = Runner(handlers, queue, jobs_storage, plugins)
+        worker = (
+            Worker(runner, queue, max_concurrency=worker_max_concurrency)
+            if with_worker
+            else None
         )
-        self._api_config = uvicorn.Config(
-            create_api(
-                self._scrapers_storage,
-                self._jobs_storage,
-                self._queue,
-                handlers,
-            ),
-            host="0.0.0.0",
-            port=api_port,
-            log_config=None,
+        api = (
+            create_api(scrapers_storage, jobs_storage, queue, handlers)
+            if with_api
+            else None
         )
-        self._api_server = uvicorn.Server(self._api_config)
-        self._logger = logging.getLogger(__name__)
-        self._run_api = run_api
-        self._run_worker = run_worker
-        self._run_scheduler = run_scheduler
-        self._expose_metrics = expose_metrics
-        self._metrics_port = metrics_port
+        return SneakpeekServer(
+            worker, scheduler, api, api_port, expose_metrics, metrics_port
+        )
 
     def serve(
         self,
@@ -119,14 +142,14 @@ class SneakpeekServer:
         """
         loop = loop or asyncio.get_event_loop()
         self._logger.info("Starting sneakpeek server")
-        if self._run_scheduler:
-            loop.create_task(self._scheduler.start())
-        if self._run_worker:
-            loop.create_task(self._worker.start())
-        if self._run_api:
-            loop.create_task(self._api_server.serve())
-        if self._expose_metrics:
-            prometheus_client.start_http_server(self._metrics_port)
+        if self.scheduler:
+            loop.create_task(self.scheduler.start())
+        if self.worker:
+            loop.create_task(self.worker.start())
+        if self.api_server:
+            loop.create_task(self.api_server.serve())
+        if self.expose_metrics:
+            prometheus_client.start_http_server(self.metrics_port)
         loop.create_task(self._install_signals())
         if blocking:
             loop.run_forever()
@@ -146,9 +169,9 @@ class SneakpeekServer:
         loop.stop()
         self._logger.info("Stopping sneakpeek server")
         try:
-            if self._run_scheduler:
-                self._scheduler.stop()
-            if self._run_worker:
-                self._worker.stop()
+            if self.scheduler:
+                self.scheduler.stop()
+            if self.worker:
+                self.worker.stop()
         except Exception:
             self._logger.error(f"Failed to stop: {format_exc()}")

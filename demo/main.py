@@ -52,7 +52,7 @@ scrapers_storage = InMemoryScrapersStorage(scrapers)
 jobs_storage = InMemoryScraperJobsStorage()
 lease_storage = InMemoryLeaseStorage()
 
-server = SneakpeekServer(
+server = SneakpeekServer.create(
     handlers=[DemoScraper()],
     scrapers_storage=scrapers_storage,
     jobs_storage=jobs_storage,
