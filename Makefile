@@ -45,3 +45,9 @@ build-py: ##Build Python package
 	$(POETRY) build
 
 build: build-ui build-docs build-py ##Build everything
+
+.PHONY: clean
+clean: ##Cleanup
+	find . -type d -name "__pycache__" | xargs rm -rf {};
+	find . -type d -name ".pytest_cache" | xargs rm -rf {};
+	rm -rf $(PY_INSTALL_STAMP) $(JS_INSTALL_STAMP) .coverage .mypy_cache

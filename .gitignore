@@ -2,3 +2,7 @@
 .venv
 
 *.install.stamp
+
+.dist
+**/.pytest_cache/*
+.pytest_cache/
