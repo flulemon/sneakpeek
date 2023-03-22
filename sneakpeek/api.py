@@ -117,7 +117,7 @@ def create_api(
         queue (Queue): Sneakpeek queue implementation
         handlers (list[ScraperHandler]): List of handlers that implement scraper logic
     """
-    app = jsonrpc.API()
+    app = jsonrpc.API(docs_url="/api", redoc_url=None)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -133,9 +133,17 @@ def create_api(
         )
     )
     app.mount(
+        "/docs/",
+        StaticFiles(
+            directory=f"{pathlib.Path(__file__).parent.resolve()}/static/docs",
+            html=True,
+        ),
+        name="html",
+    )
+    app.mount(
         "/",
         StaticFiles(
-            directory=f"{pathlib.Path(__file__).parent.resolve()}/static",
+            directory=f"{pathlib.Path(__file__).parent.resolve()}/static/ui",
             html=True,
         ),
         name="html",

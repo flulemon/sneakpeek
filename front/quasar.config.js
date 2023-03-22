@@ -22,7 +22,7 @@ module.exports = configure(function (ctx) {
         browser: [ 'es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1' ],
         node: 'node16'
       },
-      distDir: '../sneakpeek/static/',
+      distDir: '../sneakpeek/static/ui/',
       vueRouterMode: 'hash',
       env: {
         API_BASE_URL: ctx.dev ? 'http://localhost:8080/api/v1/jsonrpc' : '/api/v1/jsonrpc',
