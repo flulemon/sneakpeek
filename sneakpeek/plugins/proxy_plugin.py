@@ -10,11 +10,18 @@ from sneakpeek.scraper_context import BeforeRequestPlugin, Request
 
 
 class ProxyPluginConfig(BaseModel):
-    proxy: str | URL | None = None
-    proxy_auth: BasicAuth | None = None
+    """Proxy plugin config"""
+
+    proxy: str | URL | None = None  #: Proxy URL
+    proxy_auth: BasicAuth | None = None  #: Proxy authentication info to use
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class ProxyPlugin(BeforeRequestPlugin):
+    """Proxy plugin automatically sets proxy arguments for all HTTP requests."""
+
     def __init__(self, default_config: ProxyPluginConfig | None = None) -> None:
         self._default_config = default_config or ProxyPluginConfig()
         self._user_agents = UserAgent(

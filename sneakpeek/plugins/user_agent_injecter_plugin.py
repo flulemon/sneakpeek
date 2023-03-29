@@ -8,11 +8,21 @@ from sneakpeek.scraper_context import BeforeRequestPlugin, Request
 
 
 class UserAgentInjecterPluginConfig(BaseModel):
+    """Plugin configuration"""
+
+    #: Whether to use external data as a fallback
     use_external_data: bool = True
+
+    #: List of browsers which are used to generate user agents
     browsers: list[str] = ["chrome", "edge", "firefox", "safari", "opera"]
 
 
 class UserAgentInjecterPlugin(BeforeRequestPlugin):
+    """
+    This plugin automatically adds ``User-Agent`` header if it's not present.
+    It uses `fake-useragent <https://pypi.org/project/fake-useragent/>`_ in order to generate fake real world user agents.
+    """
+
     def __init__(
         self, default_config: UserAgentInjecterPluginConfig | None = None
     ) -> None:

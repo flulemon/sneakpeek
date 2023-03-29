@@ -36,6 +36,7 @@ build-ui: ##Build frontend
 	$(YARN) --cwd $(ROOT_DIR)/front/ quasar build
 
 build-docs: $(PY_INSTALL_STAMP) ##Build documentation
+	rm -rf $(ROOT_DIR)/docs/_build
 	$(POETRY) run sphinx-build $(ROOT_DIR)/docs $(ROOT_DIR)/docs/_build
 	rm -rf $(ROOT_DIR)/sneakpeek/static/docs/
 	mkdir -p $(ROOT_DIR)/sneakpeek/static/docs/

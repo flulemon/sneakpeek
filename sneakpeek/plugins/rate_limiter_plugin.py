@@ -49,29 +49,40 @@ class _LeakyBucket:
 
 
 class RateLimitedException(Exception):
+    """Request is rate limited because too many requests were made to the host"""
+
     pass
 
 
 class RateLimitedStrategy(Enum):
-    THROW = auto()
-    WAIT = auto()
+    """What to do if the request is rate limited"""
+
+    THROW = auto()  #: Throw an exception
+    WAIT = auto()  #: Wait until request is no longer rate limited
 
 
 class RateLimiterPluginConfig(BaseModel):
-    max_rpm: int = 60
+    """Rate limiter plugin configuration"""
+
+    #: Maximum number of allowed requests per host within time window
+    max_requests: int = 60
+    #: What to do if the request is rate limited
     rate_limited_strategy: RateLimitedStrategy = RateLimitedStrategy.WAIT
+    #: Time window to aggregate requests
     time_window: timedelta = DEFAULT_BUCKET_TIME_WINDOW
 
-    @validator("max_rpm")
-    def check_max_rpm(cls, v: int) -> int:
+    @validator("max_requests")
+    def check_max_requests(cls, v: int) -> int:
         if v <= 0:
-            raise ValueError(f"`max_rpm` must be a positive integer. Received: {v}")
+            raise ValueError(
+                f"`max_requests` must be a positive integer. Received: {v}"
+            )
         return v
 
     def __hash__(self):
         return hash(
             (
-                self.max_rpm,
+                self.max_requests,
                 self.rate_limited_strategy,
                 self.time_window,
             )
@@ -79,6 +90,12 @@ class RateLimiterPluginConfig(BaseModel):
 
 
 class RateLimiterPlugin(BeforeRequestPlugin):
+    """
+    Rate limiter implements `leaky bucket algorithm <https://en.wikipedia.org/wiki/Leaky_bucket>`_
+    to limit number of requests made to the hosts. If the request is rate limited it can either
+    raise an exception or wait until the request won't be limited anymore.
+    """
+
     def __init__(self, default_config: RateLimiterPluginConfig | None = None) -> None:
         self._default_config = default_config or RateLimiterPluginConfig()
         self._logger = logging.getLogger(__name__)
@@ -93,7 +110,7 @@ class RateLimiterPlugin(BeforeRequestPlugin):
     @ttl_cache(maxsize=None, ttl=timedelta(minutes=5).total_seconds())
     def _get_bucket(self, key: str, config: RateLimiterPluginConfig) -> _LeakyBucket:
         return _LeakyBucket(
-            size=config.max_rpm,
+            size=config.max_requests,
             time_window=config.time_window,
         )
 

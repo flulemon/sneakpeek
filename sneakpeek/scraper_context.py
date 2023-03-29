@@ -17,6 +17,8 @@ PluginConfig = Any
 
 
 class HttpMethod(str, Enum):
+    """HTTP method"""
+
     GET = "get"
     POST = "post"
     HEAD = "head"
@@ -27,6 +29,8 @@ class HttpMethod(str, Enum):
 
 @dataclass
 class Request:
+    """HTTP Request metadata"""
+
     method: HttpMethod
     url: str
     headers: HttpHeaders | None = None

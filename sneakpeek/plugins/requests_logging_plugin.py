@@ -9,11 +9,15 @@ from sneakpeek.scraper_context import AfterResponsePlugin, BeforeRequestPlugin, 
 
 
 class RequestsLoggingPluginConfig(BaseModel):
-    log_request: bool = True
-    log_response: bool = True
+    """Requests logging plugin config"""
+
+    log_request: bool = True  #: Whether to log request being made
+    log_response: bool = True  #: Whether to log response being made
 
 
 class RequestsLoggingPlugin(BeforeRequestPlugin, AfterResponsePlugin):
+    """Requests logging middleware logs all requests being made and received responses."""
+
     def __init__(
         self, default_config: RequestsLoggingPluginConfig | None = None
     ) -> None:

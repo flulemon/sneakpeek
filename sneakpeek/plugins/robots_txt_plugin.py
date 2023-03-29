@@ -16,19 +16,27 @@ from sneakpeek.scraper_context import BeforeRequestPlugin, Request
 
 
 class RobotsTxtViolationException(Exception):
+    """Exception which is raised if request is disallowed by website robots.txt"""
+
     pass
 
 
 class RobotsTxtViolationStrategy(Enum):
-    LOG = auto()
-    THROW = auto()
+    """What to do if the request is disallowed by website robots.txt"""
+
+    LOG = auto()  #: Only log violation
+    THROW = auto()  #: Raise an exception on vioalation
 
 
 class RobotsTxtPluginConfig(BaseModel):
+    """robots.txt plugin configuration"""
+
     violation_strategy: RobotsTxtViolationStrategy = RobotsTxtViolationStrategy.LOG
 
 
 class RobotsTxtPlugin(BeforeRequestPlugin):
+    """Robots.txt plugin can log and optionally block requests if they are disallowed by website robots.txt."""
+
     def __init__(self, default_config: RobotsTxtPluginConfig | None = None) -> None:
         self._default_config = default_config or RobotsTxtPluginConfig()
         self._logger = logging.getLogger(__name__)
