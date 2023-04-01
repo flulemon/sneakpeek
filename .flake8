@@ -1,0 +1,11 @@
+[flake8]
+ignore = E501, W503
+exclude =
+    __pycache__,
+    .eggs,
+    .git,
+    .tox,
+    .nox,
+    build,
+    dist,
+    src/test/python_tests/test_data
