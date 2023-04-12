@@ -32,6 +32,7 @@ html_static_path = ["_static"]
 autoclass_content = "both"
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
+    "analytics_id": "G-3EW8JNTBHC",
     "logo_only": False,
     "display_version": True,
     "prev_next_buttons_location": "bottom",
