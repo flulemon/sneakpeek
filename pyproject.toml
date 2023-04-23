@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "sneakpeek-py"
 packages = [{ include = "sneakpeek" }]
-version = "0.1.4"
-description = "Tool box for creating scrapers, so that you only focus on scraping logic"
+version = "0.1.5"
+description = "Sneakpeek is a framework that helps to quickly and conviniently develop scrapers. It's the best choice for scrapers that have some specific complex scraping logic that needs to be run on a constant basis."
 authors = ["Dan Yazovsky <daniil.yazovsky@gmail.com>"]
 maintainers = ["Dan Yazovsky <daniil.yazovsky@gmail.com>"]
 repository = "https://github.com/flulemon/sneakpeek"
-documentation = "https://github.com/flulemon/sneakpeek"
+documentation = "https://sneakpeek-py.readthedocs.io/en/latest/"
 homepage = "https://github.com/flulemon/sneakpeek"
 license = "BSD-3-Clause"
 readme = "README.md"
