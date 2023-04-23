@@ -3,6 +3,7 @@
 
 *.install.stamp
 
+dist
 .dist
 **/.pytest_cache/*
 .pytest_cache/
