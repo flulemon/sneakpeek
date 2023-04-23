@@ -5,13 +5,13 @@ on: push
 jobs:
   ci:
     name: Build and publish Python pacakage to PyPI
+    runs-on: "ubuntu-latest"
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10"]
         poetry-version: ["1.4.2"]
         node-version: ["18.16.0"]
-        os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v3
 
