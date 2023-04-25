@@ -38,6 +38,9 @@ jobs:
       - name: Run tests
         run: make test
 
+      - name: Tests coverage
+        run: make coverage
+
       - name: Build package
         run: make build
 

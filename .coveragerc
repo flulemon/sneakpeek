@@ -1,0 +1,7 @@
+[report]
+exclude_lines =
+    @abstractmethod
+    @abc.abstractmethod
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
