@@ -54,7 +54,7 @@
           </q-item-section>
         </q-item>
         <q-space vertical />
-        <q-item clickable v-ripple href="https://github.com/flulemon/sneakpeek">
+        <q-item clickable v-ripple href="https://github.com/flulemon/sneakpeek" target="_blank">
           <q-item-section avatar>
             <q-icon name="fa-brands fa-github" />
           </q-item-section>
@@ -62,7 +62,7 @@
             Github
           </q-item-section>
         </q-item>
-        <q-item clickable v-ripple href="https://github.com/flulemon/sneakpeek">
+        <q-item clickable v-ripple href="https://sneakpeek-py.readthedocs.io/en/latest/" target="_blank">
           <q-item-section avatar>
             <q-icon name="fa-solid fa-code" />
           </q-item-section>
