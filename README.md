@@ -1,5 +1,9 @@
 # Sneakpeek
 
+![CI](https://github.com/flulemon/sneakpeek/actions/workflows/ci.yml/badge.svg)
+[![PyPI version](https://badge.fury.io/py/sneakpeek-py.svg)](https://badge.fury.io/py/sneakpeek-py)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/sneakpeek-py?color=)
+
 **Sneakpeek** - is a framework that helps to quickly and conviniently develop scrapers.
 It's the best choice for scrapers that have some specific complex scraping logic that needs
 to be run on a constant basis.
