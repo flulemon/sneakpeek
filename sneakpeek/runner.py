@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -7,11 +8,12 @@ from typing import List
 from prometheus_client import Counter
 
 from sneakpeek.lib.errors import ScraperJobPingFinishedError, UnknownScraperHandlerError
-from sneakpeek.lib.models import Scraper, ScraperJob, ScraperJobStatus
+from sneakpeek.lib.models import ScraperJob, ScraperJobStatus
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import ScraperJobsStorage
-from sneakpeek.logging import scraper_job_context
+from sneakpeek.logging import configure_logging, scraper_job_context
 from sneakpeek.metrics import count_invocations, delay_histogram
+from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import Plugin, ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
 
@@ -38,17 +40,16 @@ class RunnerABC(ABC):
 
 
 class Runner(RunnerABC):
-    """Default scraper jobner implementation"""
+    """Default scraper runner implementation that is meant to be used in the Sneakpeek server"""
 
     def __init__(
         self,
-        handlers: List[Scraper],
+        handlers: List[ScraperHandler],
         queue: QueueABC,
         storage: ScraperJobsStorage,
         plugins: list[Plugin] | None = None,
     ) -> None:
-        """Initialize runner
-
+        """
         Args:
             handlers (list[ScraperHandler]): List of handlers that implement scraper logic
             queue (Queue): Sneakpeek queue implementation
@@ -118,3 +119,46 @@ class Runner(RunnerABC):
             job.finished_at = datetime.utcnow()
             await self._storage.update_scraper_job(job)
             self._logger.info("Successfully executed scraper")
+
+
+class LocalRunner:
+    """Scraper runner that is meant to be used for local debugging"""
+
+    @staticmethod
+    async def run_async(
+        handler: ScraperHandler,
+        config: ScraperConfig,
+        plugins: list[Plugin] | None = None,
+        logging_level: int = logging.DEBUG,
+    ) -> None:
+        """
+        Execute scraper locally.
+
+        Args:
+            config (ScraperConfig): Scraper config
+        """
+        configure_logging(logging_level)
+        logging.info("Starting scraper")
+
+        async def ping_session():
+            pass
+
+        context = ScraperContext(config, plugins, ping_session)
+        try:
+            await context.start_session()
+            result = await handler.run(context)
+            logging.info(f"Scraper succeeded. Result: {result}")
+        except Exception as e:
+            logging.error(f"Failed to execute scraper with error: {e}")
+            logging.error(f"Traceback: {format_exc()}")
+        finally:
+            await context.close()
+
+    @staticmethod
+    def run(
+        handler: ScraperHandler,
+        config: ScraperConfig,
+        plugins: list[Plugin] | None = None,
+        logging_level: int = logging.DEBUG,
+    ) -> None:
+        asyncio.run(LocalRunner.run_async(handler, config, plugins, logging_level))

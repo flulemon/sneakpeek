@@ -1,46 +1,53 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.1",
-    "configurations": [
-        {
-            "name": "python",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
-        },
-        {
-            "name": "Run all",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/sneakpeek/app.py",
-            "args": [
-                "--api",
-                "--scheduler",
-                "--worker",
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
-        },
-        {
-            "name": "Run demo",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/demo/main.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.1",
+  "configurations": [
+    {
+      "name": "python",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    },
+    {
+      "name": "Run all",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/sneakpeek/app.py",
+      "args": ["--api", "--scheduler", "--worker"],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    },
+    {
+      "name": "Run demo",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/demo/main.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    },
+    {
+      "name": "Run demo (local handler)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/demo/demo_scraper.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    }
+  ]
 }
