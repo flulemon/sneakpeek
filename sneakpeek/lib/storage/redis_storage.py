@@ -29,20 +29,8 @@ class RedisScrapersStorage(ScrapersStorage):
     async def _generate_id(self) -> int:
         return int(await self._redis.incr("internal:id_counter"))
 
-    async def _generate_queue_id(self, priority: ScraperJobPriority) -> int:
-        return int(await self._redis.incr(f"internal:queue:{priority}:last_id"))
-
-    async def _get_queue_last_id(self, priority: ScraperJobPriority) -> int:
-        return int(await self._redis.get(f"internal:queue:{priority}:last_id") or 0)
-
-    async def _get_queue_offset(self, priority: ScraperJobPriority) -> int:
-        return int(await self._redis.get(f"internal:queue:{priority}:offset") or 0)
-
     def _get_scraper_key(self, id: int) -> str:
         return f"scraper:{id}"
-
-    def _get_scraper_job_key(self, scraper_id: int, run_id: int) -> str:
-        return f"scraper_job:{scraper_id}:{run_id}"
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")

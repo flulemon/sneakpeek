@@ -174,7 +174,7 @@ from sneakpeek.runner import LocalRunner
 
 And add the following lines to the end of the file:
 
-```
+```python3
 if __name__ == "__main__":
     LocalRunner.run(
         DemoScraper(),

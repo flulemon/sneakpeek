@@ -1,4 +1,5 @@
 import logging
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -35,6 +36,14 @@ class Request:
     url: str
     headers: HttpHeaders | None = None
     kwargs: dict[str, Any] | None = None
+
+
+@dataclass
+class RegexMatch:
+    """Regex match"""
+
+    full_match: str  #: Full regular expression match
+    groups: dict[str, str]  #: Regular expression group matches
 
 
 class BeforeRequestPlugin(ABC):
@@ -341,3 +350,24 @@ class ScraperContext:
                 kwargs=kwargs,
             )
         )
+
+    def regex(
+        self,
+        text: str,
+        pattern: str,
+        flags: re.RegexFlag = re.UNICODE | re.MULTILINE | re.IGNORECASE,
+    ) -> list[RegexMatch]:
+        """Find matches in the text using regular expression
+
+        Args:
+            text (str): Text to search in
+            pattern (str): Regular expression
+            flags (re.RegexFlag, optional): Regular expression flags. Defaults to re.UNICODE | re.MULTILINE | re.IGNORECASE.
+
+        Returns:
+            list[RegexMatch]: Matches found in the text
+        """
+        return [
+            RegexMatch(full_match=match.group(0), groups=match.groupdict())
+            for match in re.finditer(pattern, text, flags)
+        ]
