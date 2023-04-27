@@ -14,6 +14,7 @@ Table of contents
 
    self
    quick_start
+   local_debugging
    design
    deployment
    plugins/index
