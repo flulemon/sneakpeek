@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Search &mdash; Sneakpeek 0.1.4 documentation</title>
+  <title>Local scraper handler debugging &mdash; Sneakpeek 0.1.4 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -16,10 +16,10 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
-    <script src="_static/searchtools.js"></script>
-    <script src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="#" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Design" href="design.html" />
+    <link rel="prev" title="Quick start" href="quick_start.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -33,17 +33,17 @@
                 0.1
               </div>
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="#" method="get">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="local_debugging.html">Local scraper handler debugging</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Local scraper handler debugging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment options</a></li>
 <li class="toctree-l1"><a class="reference internal" href="plugins/index.html">Plugins</a><ul>
@@ -72,8 +72,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Search</li>
+      <li>Local scraper handler debugging</li>
       <li class="wy-breadcrumbs-aside">
+            <a href="_sources/local_debugging.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -81,22 +82,47 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <noscript>
-  <div id="fallback" class="admonition warning">
-    <p class="last">
-      Please activate JavaScript to enable the search functionality.
-    </p>
-  </div>
-  </noscript>
+  <section id="local-scraper-handler-debugging">
+<h1>Local scraper handler debugging<a class="headerlink" href="#local-scraper-handler-debugging" title="Permalink to this headline"></a></h1>
+<p>You can easily test handler without running full-featured server. Here’s how you can do that for the <cite>DemoScraper</cite> that we have developed in the <a class="reference internal" href="quick_start.html"><span class="doc">tutorial</span></a>.</p>
+<p>Add import in the beginning of the file:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sneakpeek.runner</span> <span class="kn">import</span> <span class="n">LocalRunner</span>
+</pre></div>
+</div>
+<p>And add the following lines to the end of the file:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">LocalRunner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+        <span class="n">DemoScraper</span><span class="p">(),</span>
+        <span class="n">ScraperConfig</span><span class="p">(</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">DemoScraperParams</span><span class="p">(</span>
+                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://google.com&quot;</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">dict</span><span class="p">(),</span>
+        <span class="p">),</span>
+        <span class="n">plugins</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">RequestsLoggingPlugin</span><span class="p">(),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>For the argument <cite>LocalRunner.run</cite> takes:</p>
+<ol class="arabic simple">
+<li><p>An instance of your scraper handler</p></li>
+<li><p>Scraper config</p></li>
+<li><p><strong>[Optional]</strong> List of plugins that will be used in the handler (<a class="reference internal" href="plugins/index.html"><span class="doc">see full list of the plugins here</span></a>)</p></li>
+</ol>
+<p>Now you can run you handler as an ordinary Python script. Given it’s in <cite>demo_scraper.py</cite> file you can use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>demo_scraper.py
+</pre></div>
+</div>
+</section>
 
-  
-  <div id="search-results">
-  
-  </div>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quick_start.html" class="btn btn-neutral float-left" title="Quick start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="design.html" class="btn btn-neutral float-right" title="Design" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 
@@ -129,14 +155,7 @@
       gtag('config', 'G-3EW8JNTBHC', {
           'anonymize_ip': false,
       });
-    </script>
-  <script>
-    jQuery(function() { Search.loadIndex("searchindex.js"); });
-  </script>
-  
-  <script id="searchindexloader"></script>
-   
-
+    </script> 
 
 </body>
 </html>
