@@ -9,7 +9,19 @@
 It's the best choice for scrapers that have some specific complex scraping logic that needs
 to be run on a constant basis.
 
-# Quick start
+## Demo
+
+[Here's a demo project](https://github.com/flulemon/sneakpeek-demo) which uses **Sneakpeek** framework.
+
+You can also run the demo using Docker:
+
+```bash
+docker run -it --rm -p 8080:8080 -p 9090:9090 flulemon/sneakpeek-demo
+```
+
+Once it has started head over to http://localhost:8080 to play around with it.
+
+## Quick start
 
 So you want to create a new scraper, first you need to make sure you
 have installed **Sneakpeek**:
@@ -162,7 +174,7 @@ python run main.py
 That\'s it! Now you can open <http://localhost:8080> and explore the UI
 to see how you scraper is being automatically scheduled and executed.
 
-# Local handler testing
+## Local handler testing
 
 You can easily test handler without running full-featured server. Here's how you can do that for the `DemoScraper` that we have developed in the [Quick start](#quick-start).
 
@@ -201,10 +213,10 @@ Now you can run you handler as an ordinary Python script. Given it's in `demo_sc
 python3 demo_scraper.py
 ```
 
-# Documentation
+## Documentation
 
 For the full documentation please visit [sneakpeek-py.readthedocs.io](https://sneakpeek-py.readthedocs.io/en/latest/)
 
-# Contributing
+## Contributing
 
 Please take a look at our [contributing](https://github.com/flulemon/sneakpeek/blob/main/CONTRIBUTING.md) guidelines if you're interested in helping!
