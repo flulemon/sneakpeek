@@ -213,15 +213,25 @@ class ScraperContext:
             )
         return response
 
-    async def _single_request(self, request: Request) -> aiohttp.ClientResponse:
-        request = await self._before_request(request)
-        response = await getattr(self._session, request.method)(
-            request.url,
-            headers=request.headers,
-            **(request.kwargs or {}),
-        )
-        response = await self._after_response(request, response)
-        return response
+    async def _single_request(
+        self,
+        request: Request,
+        semaphore: asyncio.Semaphore | None = None,
+    ) -> aiohttp.ClientResponse:
+        if semaphore:
+            await semaphore.acquire()
+        try:
+            request = await self._before_request(request)
+            response = await getattr(self._session, request.method)(
+                request.url,
+                headers=request.headers,
+                **(request.kwargs or {}),
+            )
+            response = await self._after_response(request, response)
+            return response
+        finally:
+            if semaphore:
+                await semaphore.release()
 
     async def _request(
         self,
@@ -278,19 +288,17 @@ class ScraperContext:
         max_concurrency: int = 0,
         return_exceptions: bool = False,
         **kwargs,
-    ) -> Response:
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         """Perform HTTP request to the given URL(s)
 
         Args:
-            method (HttpMethod): HTTP request method to perform
             url (str | list[str]): URL(s) to send HTTP request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
-            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.request() for the full list of arguments
 
         Returns:
-            Response: HTTP response(s)
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self._request(
             _BatchRequest(
@@ -407,7 +415,7 @@ class ScraperContext:
         max_concurrency: int = 0,
         return_exceptions: bool = False,
         **kwargs,
-    ) -> Response:
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         """Make GET request to the given URL(s)
 
         Args:
@@ -418,7 +426,7 @@ class ScraperContext:
             **kwargs: See aiohttp.get() for the full list of arguments
 
         Returns:
-            Response: HTTP response(s)
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self.request(
             HttpMethod.GET,
@@ -437,7 +445,7 @@ class ScraperContext:
         max_concurrency: int = 0,
         return_exceptions: bool = False,
         **kwargs,
-    ) -> Response:
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         """Make POST request to the given URL(s)
 
         Args:
@@ -448,7 +456,7 @@ class ScraperContext:
             **kwargs: See aiohttp.post() for the full list of arguments
 
         Returns:
-            Response: HTTP response(s)
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self.request(
             HttpMethod.POST,
@@ -467,7 +475,7 @@ class ScraperContext:
         max_concurrency: int = 0,
         return_exceptions: bool = False,
         **kwargs,
-    ) -> Response:
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         """Make HEAD request to the given URL(s)
 
         Args:
@@ -478,7 +486,7 @@ class ScraperContext:
             **kwargs: See aiohttp.head() for the full list of arguments
 
         Returns:
-            Response: HTTP response(s)
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self.request(
             HttpMethod.HEAD,
@@ -497,7 +505,7 @@ class ScraperContext:
         max_concurrency: int = 0,
         return_exceptions: bool = False,
         **kwargs,
-    ) -> Response:
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         """Make DELETE request to the given URL(s)
 
         Args:
@@ -508,7 +516,7 @@ class ScraperContext:
             **kwargs: See aiohttp.delete() for the full list of arguments
 
         Returns:
-            Response: HTTP response(s)
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self.request(
             HttpMethod.DELETE,
@@ -527,7 +535,7 @@ class ScraperContext:
         max_concurrency: int = 0,
         return_exceptions: bool = False,
         **kwargs,
-    ) -> Response:
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         """Make PUT request to the given URL(s)
 
         Args:
@@ -538,7 +546,7 @@ class ScraperContext:
             **kwargs: See aiohttp.put() for the full list of arguments
 
         Returns:
-            Response: HTTP response(s)
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self.request(
             HttpMethod.PUT,
@@ -557,7 +565,7 @@ class ScraperContext:
         max_concurrency: int = 0,
         return_exceptions: bool = False,
         **kwargs,
-    ) -> Response:
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         """Make OPTIONS request to the given URL(s)
 
         Args:
@@ -568,7 +576,7 @@ class ScraperContext:
             **kwargs: See aiohttp.options() for the full list of arguments
 
         Returns:
-            Response: HTTP response(s)
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self.request(
             HttpMethod.OPTIONS,
