@@ -11,6 +11,7 @@ from sneakpeek.lib.errors import (
     ScraperJobPingFinishedError,
     ScraperJobPingNotStartedError,
 )
+from sneakpeek.lib.models import Scraper
 from sneakpeek.scraper_config import ScraperConfig
 
 HttpHeaders = dict[str, str]
@@ -117,16 +118,22 @@ class ScraperContext:
         self,
         config: ScraperConfig,
         plugins: list[Plugin] | None = None,
+        scraper_state: str | None = None,
         ping_session_func: Callable | None = None,
+        update_scraper_state_func: Callable | None = None,
     ) -> None:
         """
         Args:
             config (ScraperConfig): Scraper configuration
             plugins (list[BeforeRequestPlugin | AfterResponsePlugin] | None, optional): List of available plugins. Defaults to None.
+            scraper_state (str | None, optional): Scraper state. Defaults to None.
             ping_session_func (Callable | None, optional): Function that pings scraper job. Defaults to None.
+            update_scraper_state_func (Callable | None, optional): Function that update scraper state. Defaults to None.
         """
         self.params = config.params
-        self.ping_session_func = ping_session_func
+        self.state = scraper_state
+        self._ping_session_func = ping_session_func
+        self._update_scraper_state_func = update_scraper_state_func
         self._logger = logging.getLogger(__name__)
         self._plugins_configs = config.plugins or {}
         self._session: aiohttp.ClientSession | None = None
@@ -193,13 +200,13 @@ class ScraperContext:
 
     async def ping_session(self) -> None:
         """Ping scraper job, so it's not considered dead"""
-        if not self.ping_session_func:
+        if not self._ping_session_func:
             self._logger.warning(
                 "Tried to ping scraper job, but the function to ping session is None"
             )
             return
         try:
-            await self.ping_session_func()
+            await self._ping_session_func()
         except ScraperJobPingNotStartedError as e:
             self._logger.error(
                 f"Failed to ping PENDING scraper job because due to some infra error: {e}"
@@ -371,3 +378,19 @@ class ScraperContext:
             RegexMatch(full_match=match.group(0), groups=match.groupdict())
             for match in re.finditer(pattern, text, flags)
         ]
+
+    async def update_scraper_state(self, state: str) -> Scraper:
+        """Update scraper state
+
+        Args:
+            state (str): State to persist
+
+        Returns:
+            Scraper: Updated scraper metadata
+        """
+        if not self._update_scraper_state_func:
+            self._logger.warning(
+                "Tried to update scraper state, but the function to do it is not set"
+            )
+            return
+        return await self._update_scraper_state_func(state)
