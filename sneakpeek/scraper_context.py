@@ -165,7 +165,7 @@ class ScraperContext:
 
     def _init_plugins(self, plugins: list[Plugin] | None = None) -> None:
         for plugin in plugins or []:
-            if not plugin.name.isidentifier:
+            if not plugin.name.isidentifier():
                 raise ValueError(
                     "Plugin name must be a Python identifier. "
                     f"Plugin {plugin.__class__} has invalid name: {plugin.name}"
@@ -208,25 +208,15 @@ class ScraperContext:
             )
         return response
 
-    async def _single_request(
-        self,
-        request: Request,
-        semaphore: asyncio.Semaphore | None = None,
-    ) -> aiohttp.ClientResponse:
-        if semaphore:
-            await semaphore.acquire()
-        try:
-            request = await self._before_request(request)
-            response = await getattr(self._session, request.method)(
-                request.url,
-                headers=request.headers,
-                **(request.kwargs or {}),
-            )
-            response = await self._after_response(request, response)
-            return response
-        finally:
-            if semaphore:
-                await semaphore.release()
+    async def _single_request(self, request: Request) -> aiohttp.ClientResponse:
+        request = await self._before_request(request)
+        response = await getattr(self._session, request.method)(
+            request.url,
+            headers=request.headers,
+            **(request.kwargs or {}),
+        )
+        response = await self._after_response(request, response)
+        return response
 
     async def _request(
         self,
@@ -237,9 +227,17 @@ class ScraperContext:
         single_requests = request.to_single_requests()
         if len(single_requests) == 1:
             return await self._single_request(single_requests[0])
+
         semaphore = asyncio.Semaphore(max_concurrency) if max_concurrency > 0 else None
+
+        async def process_request(request: Request):
+            if semaphore:
+                async with semaphore:
+                    return await self._single_request(request)
+            return await self._single_request(request)
+
         return await asyncio.gather(
-            *[self._single_request(request, semaphore) for request in single_requests]
+            *[process_request(request) for request in single_requests]
         )
 
     async def ping_session(self) -> None:
