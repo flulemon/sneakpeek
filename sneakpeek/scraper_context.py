@@ -213,25 +213,15 @@ class ScraperContext:
             )
         return response
 
-    async def _single_request(
-        self,
-        request: Request,
-        semaphore: asyncio.Semaphore | None = None,
-    ) -> aiohttp.ClientResponse:
-        if semaphore:
-            await semaphore.acquire()
-        try:
-            request = await self._before_request(request)
-            response = await getattr(self._session, request.method)(
-                request.url,
-                headers=request.headers,
-                **(request.kwargs or {}),
-            )
-            response = await self._after_response(request, response)
-            return response
-        finally:
-            if semaphore:
-                await semaphore.release()
+    async def _single_request(self, request: Request) -> aiohttp.ClientResponse:
+        request = await self._before_request(request)
+        response = await getattr(self._session, request.method)(
+            request.url,
+            headers=request.headers,
+            **(request.kwargs or {}),
+        )
+        response = await self._after_response(request, response)
+        return response
 
     async def _request(
         self,
