@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 from abc import ABC, abstractmethod
@@ -24,7 +25,7 @@ class HttpMethod(str, Enum):
     GET = "get"
     POST = "post"
     HEAD = "head"
-    PUT = "PUT"
+    PUT = "put"
     DELETE = "delete"
     OPTIONS = "options"
 
@@ -37,6 +38,27 @@ class Request:
     url: str
     headers: HttpHeaders | None = None
     kwargs: dict[str, Any] | None = None
+
+
+@dataclass
+class _BatchRequest:
+    """HTTP Batch request metadata"""
+
+    method: HttpMethod
+    urls: list[str]
+    headers: HttpHeaders | None = None
+    kwargs: dict[str, Any] | None = None
+
+    def to_single_requests(self) -> list[Request]:
+        return [
+            Request(
+                method=self.method,
+                url=url,
+                headers=self.headers,
+                kwargs=self.kwargs,
+            )
+            for url in self.urls
+        ]
 
 
 @dataclass
@@ -186,17 +208,39 @@ class ScraperContext:
             )
         return response
 
-    async def _request(self, request: Request) -> aiohttp.ClientResponse:
+    async def _single_request(
+        self,
+        request: Request,
+        semaphore: asyncio.Semaphore | None = None,
+    ) -> aiohttp.ClientResponse:
+        if semaphore:
+            await semaphore.acquire()
+        try:
+            request = await self._before_request(request)
+            response = await getattr(self._session, request.method)(
+                request.url,
+                headers=request.headers,
+                **(request.kwargs or {}),
+            )
+            response = await self._after_response(request, response)
+            return response
+        finally:
+            if semaphore:
+                await semaphore.release()
+
+    async def _request(
+        self,
+        request: _BatchRequest,
+        max_concurrency: int = 0,
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
         await self.ping_session()
-        request = await self._before_request(request)
-        response = await getattr(self._session, request.method)(
-            request.url,
-            headers=request.headers,
-            **(request.kwargs or {}),
+        single_requests = request.to_single_requests()
+        if len(single_requests) == 1:
+            return await self._single_request(single_requests[0])
+        semaphore = asyncio.Semaphore(max_concurrency) if max_concurrency > 0 else None
+        return await asyncio.gather(
+            *[self._single_request(request, semaphore) for request in single_requests]
         )
-        response = await self._after_response(request, response)
-        await self.ping_session()
-        return response
 
     async def ping_session(self) -> None:
         """Ping scraper job, so it's not considered dead"""
@@ -220,142 +264,196 @@ class ScraperContext:
         except Exception as e:
             self._logger.error(f"Failed to ping scraper job: {e}")
 
-    async def get(
+    async def request(
         self,
-        url: str,
+        method: HttpMethod,
+        url: str | list[str],
         *,
         headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
         **kwargs,
-    ) -> aiohttp.ClientResponse:
-        """Make GET request to the given URL
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        """Perform HTTP request to the given URL(s)
 
         Args:
-            url (str): URL to send GET request to
+            url (str | list[str]): URL(s) to send HTTP request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
-            **kwargs: See aiohttp.get() for the full list of arguments
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            **kwargs: See aiohttp.request() for the full list of arguments
+
+        Returns:
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
         return await self._request(
-            Request(
-                method=HttpMethod.GET,
-                url=url,
+            _BatchRequest(
+                method=method,
+                urls=url if isinstance(url, list) else [url],
                 headers=headers,
                 kwargs=kwargs,
-            )
+            ),
+            max_concurrency=max_concurrency,
+        )
+
+    async def get(
+        self,
+        url: str | list[str],
+        *,
+        headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
+        **kwargs,
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        """Make GET request to the given URL(s)
+
+        Args:
+            url (str | list[str]): URL(s) to send GET request to
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            **kwargs: See aiohttp.get() for the full list of arguments
+
+        Returns:
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+        """
+        return await self.request(
+            HttpMethod.GET,
+            url,
+            headers=headers,
+            max_concurrency=max_concurrency,
+            **kwargs,
         )
 
     async def post(
         self,
-        url: str,
+        url: str | list[str],
         *,
         headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
         **kwargs,
-    ) -> aiohttp.ClientResponse:
-        """Make POST request to the given URL
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        """Make POST request to the given URL(s)
 
         Args:
-            url (str): URL to send POST request to
+            url (str | list[str]): URL(s) to send POST request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
-            **kwargs: See aiohttp.get() for the full list of arguments
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            **kwargs: See aiohttp.post() for the full list of arguments
+
+        Returns:
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
-        return await self._request(
-            Request(
-                method=HttpMethod.POST,
-                url=url,
-                headers=headers,
-                kwargs=kwargs,
-            )
+        return await self.request(
+            HttpMethod.POST,
+            url,
+            headers=headers,
+            max_concurrency=max_concurrency,
+            **kwargs,
         )
 
     async def head(
         self,
-        url: str,
+        url: str | list[str],
         *,
         headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
         **kwargs,
-    ) -> aiohttp.ClientResponse:
-        """Make HEAD request to the given URL
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        """Make HEAD request to the given URL(s)
 
         Args:
-            url (str): URL to send HEAD request to
+            url (str | list[str]): URL(s) to send HEAD request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
             **kwargs: See aiohttp.head() for the full list of arguments
+
+        Returns:
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
-        return await self._request(
-            Request(
-                method=HttpMethod.HEAD,
-                url=url,
-                headers=headers,
-                kwargs=kwargs,
-            )
+        return await self.request(
+            HttpMethod.HEAD,
+            url,
+            headers=headers,
+            max_concurrency=max_concurrency,
+            **kwargs,
         )
 
     async def delete(
         self,
-        url: str,
+        url: str | list[str],
         *,
         headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
         **kwargs,
-    ) -> aiohttp.ClientResponse:
-        """Make DELETE request to the given URL
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        """Make DELETE request to the given URL(s)
 
         Args:
-            url (str): URL to send DELETE request to
+            url (str | list[str]): URL(s) to send DELETE request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
             **kwargs: See aiohttp.delete() for the full list of arguments
+
+        Returns:
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
-        return await self._request(
-            Request(
-                method=HttpMethod.DELETE,
-                url=url,
-                headers=headers,
-                kwargs=kwargs,
-            )
+        return await self.request(
+            HttpMethod.DELETE,
+            url,
+            headers=headers,
+            max_concurrency=max_concurrency,
+            **kwargs,
         )
 
     async def put(
         self,
-        url: str,
+        url: str | list[str],
         *,
         headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
         **kwargs,
-    ) -> aiohttp.ClientResponse:
-        """Make PUT request to the given URL
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        """Make PUT request to the given URL(s)
 
         Args:
-            url (str): URL to send PUT request to
+            url (str | list[str]): URL(s) to send PUT request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
             **kwargs: See aiohttp.put() for the full list of arguments
+
+        Returns:
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
-        return await self._request(
-            Request(
-                method=HttpMethod.PUT,
-                url=url,
-                headers=headers,
-                kwargs=kwargs,
-            )
+        return await self.request(
+            HttpMethod.PUT,
+            url,
+            headers=headers,
+            max_concurrency=max_concurrency,
+            **kwargs,
         )
 
     async def options(
         self,
-        url: str,
+        url: str | list[str],
         *,
         headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
         **kwargs,
-    ) -> aiohttp.ClientResponse:
-        """Make OPTIONS request to the given URL
+    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        """Make OPTIONS request to the given URL(s)
 
         Args:
-            url (str): URL to send OPTIONS request to
+            url (str | list[str]): URL(s) to send OPTIONS request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
             **kwargs: See aiohttp.options() for the full list of arguments
+
+        Returns:
+            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
         """
-        return await self._request(
-            Request(
-                method=HttpMethod.OPTIONS,
-                url=url,
-                headers=headers,
-                kwargs=kwargs,
-            )
+        return await self.request(
+            HttpMethod.OPTIONS,
+            url,
+            headers=headers,
+            max_concurrency=max_concurrency,
+            **kwargs,
         )
 
     def regex(
