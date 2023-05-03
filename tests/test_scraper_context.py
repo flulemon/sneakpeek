@@ -1,13 +1,16 @@
+import os
 from typing import Any
 from unittest.mock import AsyncMock, call, patch
 
 import aiohttp
 import pytest
+from aioresponses import aioresponses
 
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import (
     AfterResponsePlugin,
     BeforeRequestPlugin,
+    HttpMethod,
     Plugin,
     Request,
     ScraperContext,
@@ -162,3 +165,158 @@ def test_regex():
     match = matches[0]
     assert match.full_match == '<a href="to be found'
     assert match.groups == {"href": "to be found"}
+
+
+@pytest.mark.asyncio
+async def test_download_file_with_no_file_path_specified():
+    with aioresponses() as response:
+        file_path = None
+        try:
+            url = "test_url"
+            body = "test body"
+            response.get(url, status=200, body=body)
+
+            ctx = context()
+            await ctx.start_session()
+            file_path = await ctx.download_file(HttpMethod.GET, url)
+            assert file_path is not None, "Expected file path to be generated"
+            assert os.path.exists(file_path), f"Expected file {file_path} to be present"
+            with open(file_path, "r") as f:
+                contents = f.read()
+                assert contents == body, f"Expected downloaded file to have '{body}'"
+        finally:
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+
+
+@pytest.mark.asyncio
+async def test_download_file_with_file_path_specified():
+    with aioresponses() as response:
+        file_path = "tmp_test_file_path"
+        try:
+            url = "test_url"
+            body = "test body"
+            response.get(url, status=200, body=body)
+
+            ctx = context()
+            await ctx.start_session()
+            actual_file_path = await ctx.download_file(
+                HttpMethod.GET, url, file_path=file_path
+            )
+            assert (
+                actual_file_path == file_path
+            ), f"Expected to receive original file path {file_path}"
+            assert os.path.exists(file_path), f"Expected file {file_path} to be present"
+            with open(file_path, "r") as f:
+                contents = f.read()
+                assert contents == body, f"Expected downloaded file to have '{body}'"
+        finally:
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+
+
+@pytest.mark.asyncio
+async def test_download_file_with_process_fn():
+    with aioresponses() as response:
+        file_path = "tmp_test_file_path"
+        try:
+            url = "test_url"
+            body = "test body"
+            expected_process_result = "return"
+            response.get(url, status=200, body=body)
+            process_fn = AsyncMock(return_value=expected_process_result)
+
+            ctx = context()
+            await ctx.start_session()
+            actual_process_result = await ctx.download_file(
+                HttpMethod.GET,
+                url,
+                file_path=file_path,
+                file_process_fn=process_fn,
+            )
+            assert (
+                actual_process_result == expected_process_result
+            ), f"Expected to receive return value of the process function: '{expected_process_result}'"
+            assert not os.path.exists(
+                file_path
+            ), f"Expected file '{file_path}' to be deleted after processing. But it's still present"
+            process_fn.assert_awaited_once_with(file_path)
+        finally:
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+
+
+@pytest.mark.asyncio
+async def test_download_multiple_files():
+    with aioresponses() as response:
+        urls = ["url1", "url2", "url3"]
+        file_paths = ["file1", "file2", "file3"]
+        responses = ["body1", "body2", "body3"]
+
+        for url, resp in zip(urls, responses):
+            response.get(url, status=200, body=resp)
+
+        try:
+            ctx = context()
+            await ctx.start_session()
+            actual_file_paths = await ctx.download_files(
+                HttpMethod.GET, urls, file_paths=file_paths
+            )
+            assert (
+                actual_file_paths == file_paths
+            ), f"Expected to receive original file paths {file_paths}"
+            for actual_file_path, expected_response in zip(
+                actual_file_paths, responses
+            ):
+                assert os.path.exists(
+                    actual_file_path
+                ), f"Expected file {actual_file_path} to be present"
+                with open(actual_file_path, "r") as f:
+                    contents = f.read()
+                    assert (
+                        contents == expected_response
+                    ), f"Expected downloaded file to have '{expected_response}'"
+        finally:
+            for file_path in file_paths:
+                if file_path and os.path.exists(file_path):
+                    os.remove(file_path)
+
+
+@pytest.mark.asyncio
+async def test_download_multiple_files_with_process_fn():
+    with aioresponses() as response:
+        urls = ["url1", "url2", "url3"]
+        file_paths = ["file1", "file2", "file3"]
+        responses = ["body1", "body2", "body3"]
+        results = ["result1", "result2", "result3"]
+        process_fn = AsyncMock(side_effect=results)
+
+        for url, resp in zip(urls, responses):
+            response.get(url, status=200, body=resp)
+
+        try:
+            ctx = context()
+            await ctx.start_session()
+            actual_results = await ctx.download_files(
+                HttpMethod.GET,
+                urls,
+                file_paths=file_paths,
+                file_process_fn=process_fn,
+            )
+            assert (
+                actual_results == results
+            ), f"Expected to receive process function results {results}"
+
+            for path in file_paths:
+                assert not os.path.exists(
+                    path
+                ), f"Expected file '{path}' to be removed after processing"
+
+            process_fn.assert_has_awaits(
+                [call(path) for path in file_paths], any_order=True
+            )
+
+        finally:
+            for file_path in file_paths:
+                if file_path and os.path.exists(file_path):
+                    os.remove(file_path)

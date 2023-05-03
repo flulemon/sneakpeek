@@ -1,10 +1,14 @@
 import asyncio
 import logging
+import os
 import re
+import sys
+import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
+from uuid import uuid4
 
 import aiohttp
 
@@ -128,6 +132,7 @@ class AfterResponsePlugin(ABC):
 
 
 Plugin = BeforeRequestPlugin | AfterResponsePlugin
+Response = aiohttp.ClientResponse | list[aiohttp.ClientResponse | Exception]
 
 
 class ScraperContext:
@@ -222,7 +227,8 @@ class ScraperContext:
         self,
         request: _BatchRequest,
         max_concurrency: int = 0,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+        return_exceptions: bool = False,
+    ) -> Response:
         await self.ping_session()
         single_requests = request.to_single_requests()
         if len(single_requests) == 1:
@@ -237,7 +243,8 @@ class ScraperContext:
             return await self._single_request(request)
 
         return await asyncio.gather(
-            *[process_request(request) for request in single_requests]
+            *[process_request(request) for request in single_requests],
+            return_exceptions=return_exceptions,
         )
 
     async def ping_session(self) -> None:
@@ -269,18 +276,21 @@ class ScraperContext:
         *,
         headers: HttpHeaders | None = None,
         max_concurrency: int = 0,
+        return_exceptions: bool = False,
         **kwargs,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+    ) -> Response:
         """Perform HTTP request to the given URL(s)
 
         Args:
+            method (HttpMethod): HTTP request method to perform
             url (str | list[str]): URL(s) to send HTTP request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.request() for the full list of arguments
 
         Returns:
-            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+            Response: HTTP response(s)
         """
         return await self._request(
             _BatchRequest(
@@ -290,6 +300,103 @@ class ScraperContext:
                 kwargs=kwargs,
             ),
             max_concurrency=max_concurrency,
+            return_exceptions=return_exceptions,
+        )
+
+    async def download_file(
+        self,
+        method: HttpMethod,
+        url: str,
+        *,
+        file_path: str | None = None,
+        file_process_fn: Callable[[str], Awaitable[Any]] | None = None,
+        headers: HttpHeaders | None = None,
+        **kwargs,
+    ) -> str | Any:
+        """Perform HTTP request and save it to the specified file
+
+        Args:
+            method (HttpMethod): HTTP request method to perform
+            url (str): URL to send HTTP request to
+            file_path (str, optional): Path of the file to save request to. If not specified temporary file name will be generated. Defaults to None.
+            file_process_fn (Callable[[str], Any], optional): Function to process the file. If specified then function will be applied to the file and its result will be returned, the file will be removed after the function call. Defaults to None.
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            **kwargs: See aiohttp.request() for the full list of arguments
+
+        Returns:
+            str | Any: File path if file process function is not defined or file process function result otherwise
+        """
+        if not file_path:
+            file_path = os.path.join(tempfile.mkdtemp(), str(uuid4()))
+        response = await self.request(
+            method=method,
+            url=url,
+            headers=headers,
+            **kwargs,
+        )
+        contents = await response.read()
+        with open(file_path, "wb") as f:
+            f.write(contents)
+        if not file_process_fn:
+            return file_path
+        result = await file_process_fn(file_path)
+        os.remove(file_path)
+        return result
+
+    async def download_files(
+        self,
+        method: HttpMethod,
+        urls: list[str],
+        *,
+        file_paths: list[str] | None = None,
+        file_process_fn: Callable[[str], Awaitable[Any]] | None = None,
+        headers: HttpHeaders | None = None,
+        max_concurrency: int = 0,
+        return_exceptions: bool = False,
+        **kwargs,
+    ) -> list[str | Any | Exception]:
+        """Perform HTTP requests and save them to the specified files
+
+        Args:
+            method (HttpMethod): HTTP request method to perform
+            urls (list[str]): URLs to send HTTP request to
+            file_paths (list[str], optional): Path of the files to save requests to. If not specified temporary file names will be generated. Defaults to None.
+            file_process_fn (Callable[[str], Any], optional): Function to process the file. If specified then function will be applied to the file and its result will be returned, the file will be removed after the function call. Defaults to None.
+            headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
+            max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
+            **kwargs: See aiohttp.request() for the full list of arguments
+
+        Returns:
+            list[str | Any | Exception]: For each URL: file path if file process function is not defined or file process function result otherwise
+        """
+        if file_paths:
+            if len(file_paths) != len(urls):
+                raise ValueError(
+                    f"Expected to have 1 file path per 1 URL, only have {len(file_paths)} for {len(urls)} URLs"
+                )
+
+        semaphore = asyncio.Semaphore(
+            max_concurrency if max_concurrency > 0 else sys.maxsize
+        )
+
+        async def process_request(url: str, file_path: str):
+            async with semaphore:
+                return await self.download_file(
+                    method,
+                    url,
+                    file_path=file_path,
+                    file_process_fn=file_process_fn,
+                    headers=headers,
+                    **kwargs,
+                )
+
+        return await asyncio.gather(
+            *[
+                process_request(url, file_path)
+                for url, file_path in zip(urls, file_paths)
+            ],
+            return_exceptions=return_exceptions,
         )
 
     async def get(
@@ -298,24 +405,27 @@ class ScraperContext:
         *,
         headers: HttpHeaders | None = None,
         max_concurrency: int = 0,
+        return_exceptions: bool = False,
         **kwargs,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+    ) -> Response:
         """Make GET request to the given URL(s)
 
         Args:
             url (str | list[str]): URL(s) to send GET request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.get() for the full list of arguments
 
         Returns:
-            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+            Response: HTTP response(s)
         """
         return await self.request(
             HttpMethod.GET,
             url,
             headers=headers,
             max_concurrency=max_concurrency,
+            return_exceptions=return_exceptions,
             **kwargs,
         )
 
@@ -325,24 +435,27 @@ class ScraperContext:
         *,
         headers: HttpHeaders | None = None,
         max_concurrency: int = 0,
+        return_exceptions: bool = False,
         **kwargs,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+    ) -> Response:
         """Make POST request to the given URL(s)
 
         Args:
             url (str | list[str]): URL(s) to send POST request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.post() for the full list of arguments
 
         Returns:
-            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+            Response: HTTP response(s)
         """
         return await self.request(
             HttpMethod.POST,
             url,
             headers=headers,
             max_concurrency=max_concurrency,
+            return_exceptions=return_exceptions,
             **kwargs,
         )
 
@@ -352,24 +465,27 @@ class ScraperContext:
         *,
         headers: HttpHeaders | None = None,
         max_concurrency: int = 0,
+        return_exceptions: bool = False,
         **kwargs,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+    ) -> Response:
         """Make HEAD request to the given URL(s)
 
         Args:
             url (str | list[str]): URL(s) to send HEAD request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.head() for the full list of arguments
 
         Returns:
-            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+            Response: HTTP response(s)
         """
         return await self.request(
             HttpMethod.HEAD,
             url,
             headers=headers,
             max_concurrency=max_concurrency,
+            return_exceptions=return_exceptions,
             **kwargs,
         )
 
@@ -379,24 +495,27 @@ class ScraperContext:
         *,
         headers: HttpHeaders | None = None,
         max_concurrency: int = 0,
+        return_exceptions: bool = False,
         **kwargs,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+    ) -> Response:
         """Make DELETE request to the given URL(s)
 
         Args:
             url (str | list[str]): URL(s) to send DELETE request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.delete() for the full list of arguments
 
         Returns:
-            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+            Response: HTTP response(s)
         """
         return await self.request(
             HttpMethod.DELETE,
             url,
             headers=headers,
             max_concurrency=max_concurrency,
+            return_exceptions=return_exceptions,
             **kwargs,
         )
 
@@ -406,24 +525,27 @@ class ScraperContext:
         *,
         headers: HttpHeaders | None = None,
         max_concurrency: int = 0,
+        return_exceptions: bool = False,
         **kwargs,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+    ) -> Response:
         """Make PUT request to the given URL(s)
 
         Args:
             url (str | list[str]): URL(s) to send PUT request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.put() for the full list of arguments
 
         Returns:
-            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+            Response: HTTP response(s)
         """
         return await self.request(
             HttpMethod.PUT,
             url,
             headers=headers,
             max_concurrency=max_concurrency,
+            return_exceptions=return_exceptions,
             **kwargs,
         )
 
@@ -433,24 +555,27 @@ class ScraperContext:
         *,
         headers: HttpHeaders | None = None,
         max_concurrency: int = 0,
+        return_exceptions: bool = False,
         **kwargs,
-    ) -> aiohttp.ClientResponse | list[aiohttp.ClientResponse]:
+    ) -> Response:
         """Make OPTIONS request to the given URL(s)
 
         Args:
             url (str | list[str]): URL(s) to send OPTIONS request to
             headers (HttpHeaders | None, optional): HTTP headers. Defaults to None.
             max_concurrency (int, optional): Maximum number of concurrent requests. If set to 0 no limit is applied. Defaults to 0.
+            return_exceptions (bool, optional): Whether to return exceptions instead of raising if there are multiple URLs provided. Defaults to False,
             **kwargs: See aiohttp.options() for the full list of arguments
 
         Returns:
-            aiohttp.ClientResponse | list[aiohttp.ClientResponse]: HTTP response(s)
+            Response: HTTP response(s)
         """
         return await self.request(
             HttpMethod.OPTIONS,
             url,
             headers=headers,
             max_concurrency=max_concurrency,
+            return_exceptions=return_exceptions,
             **kwargs,
         )
 
