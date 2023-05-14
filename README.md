@@ -4,6 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/sneakpeek-py.svg)](https://badge.fury.io/py/sneakpeek-py)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/sneakpeek-py?color=)
 [![Documentation Status](https://readthedocs.org/projects/sneakpeek-py/badge/?version=latest)](https://sneakpeek-py.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/flulemon/sneakpeek/branch/main/graph/badge.svg?token=7h45P8qHRG)](https://codecov.io/gh/flulemon/sneakpeek)
 
 **Sneakpeek** - is a framework that helps to quickly and conviniently develop scrapers.
 It's the best choice for scrapers that have some specific complex scraping logic that needs
