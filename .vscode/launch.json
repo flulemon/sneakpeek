@@ -31,7 +31,7 @@
       "name": "Run demo",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/demo/main.py",
+      "program": "${workspaceFolder}/demo/app.py",
       "console": "integratedTerminal",
       "justMyCode": true,
       "env": {

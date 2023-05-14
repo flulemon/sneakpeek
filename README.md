@@ -16,7 +16,7 @@ to be run on a constant basis.
 You can also run the demo using Docker:
 
 ```bash
-docker run -it --rm -p 8080:8080 -p 9090:9090 flulemon/sneakpeek-demo
+docker run -it --rm -p 8080:8080 flulemon/sneakpeek-demo
 ```
 
 Once it has started head over to http://localhost:8080 to play around with it.
@@ -210,7 +210,7 @@ For the argument `LocalRunner.run` takes:
 Now you can run you handler as an ordinary Python script. Given it's in `demo_scraper.py` file you can use:
 
 ```bash
-python3 demo_scraper.py
+python demo_scraper.py
 ```
 
 ## Documentation

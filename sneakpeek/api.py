@@ -1,9 +1,17 @@
+import os
 import pathlib
 
 import fastapi_jsonrpc as jsonrpc
-from fastapi import Body
+from fastapi import Body, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    REGISTRY,
+    CollectorRegistry,
+    generate_latest,
+)
+from prometheus_client.multiprocess import MultiProcessCollector
 from pydantic import BaseModel
 
 from sneakpeek.lib.errors import ScraperHasActiveRunError, ScraperNotFoundError
@@ -15,12 +23,25 @@ from sneakpeek.lib.models import (
 )
 from sneakpeek.lib.queue import Queue, QueueABC
 from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
+from sneakpeek.metrics import count_invocations, measure_latency
 from sneakpeek.scraper_handler import ScraperHandler
 
 
 class Priority(BaseModel):
     name: str
     value: int
+
+
+def metrics(request: Request) -> Response:
+    if "prometheus_multiproc_dir" in os.environ:
+        registry = CollectorRegistry()
+        MultiProcessCollector(registry)
+    else:
+        registry = REGISTRY
+
+    return Response(
+        generate_latest(registry), headers={"Content-Type": CONTENT_TYPE_LATEST}
+    )
 
 
 def get_api_entrypoint(
@@ -51,18 +72,26 @@ def get_api_entrypoint(
         return await scrapers_storage.search_scrapers(name_filter, max_items, last_id)
 
     @entrypoint.method()
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def get_scrapers() -> list[Scraper]:
         return await scrapers_storage.get_scrapers()
 
     @entrypoint.method(errors=[ScraperNotFoundError])
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def get_scraper(id: int = Body(...)) -> Scraper:
         return await scrapers_storage.get_scraper(id)
 
     @entrypoint.method()
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def create_scraper(scraper: Scraper = Body(...)) -> Scraper:
         return await scrapers_storage.create_scraper(scraper)
 
     @entrypoint.method(errors=[ScraperNotFoundError, ScraperHasActiveRunError])
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def enqueue_scraper(
         scraper_id: int = Body(...),
         priority: ScraperJobPriority = Body(...),
@@ -70,26 +99,38 @@ def get_api_entrypoint(
         return await queue.enqueue(scraper_id, priority)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def update_scraper(scraper: Scraper = Body(...)) -> Scraper:
         return await scrapers_storage.update_scraper(scraper)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def delete_scraper(id: int = Body(...)) -> Scraper:
         return await scrapers_storage.delete_scraper(id)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def get_scraper_jobs(scraper_id: int = Body(...)) -> list[ScraperJob]:
         return await jobs_storage.get_scraper_jobs(scraper_id)
 
     @entrypoint.method()
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def get_scraper_handlers() -> list[str]:
         return [handler.name for handler in handlers]
 
     @entrypoint.method()
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def get_schedules() -> list[str]:
         return [schedule.value for schedule in ScraperSchedule]
 
     @entrypoint.method()
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
     async def get_priorities() -> list[Priority]:
         return [
             Priority(name=priority.name, value=priority.value)
@@ -132,6 +173,7 @@ def create_api(
             handlers,
         )
     )
+    app.add_route("/metrics", metrics)
     app.mount(
         "/docs/",
         StaticFiles(
