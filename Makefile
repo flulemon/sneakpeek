@@ -30,7 +30,7 @@ install: install-py install-js ##Install all dependencies
 
 .PHONY: test
 test: $(PY_INSTALL_STAMP) ##Run tests
-	$(POETRY) run pytest
+	$(POETRY) run pytest -n 20
 
 .PHONE: coverage
 coverage: $(PY_INSTALL_STAMP) ##Run tests

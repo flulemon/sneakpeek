@@ -5,3 +5,11 @@ exclude_lines =
     raise AssertionError
     raise NotImplementedError
     if __name__ == .__main__.:
+    @entrypoint.method()
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    if 0:
+    class .*\bProtocol\):
+    logger.
