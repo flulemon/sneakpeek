@@ -8,7 +8,7 @@ from typing import List
 from prometheus_client import Counter
 
 from sneakpeek.lib.errors import ScraperJobPingFinishedError, UnknownScraperHandlerError
-from sneakpeek.lib.models import ScraperJob, ScraperJobStatus
+from sneakpeek.lib.models import Scraper, ScraperJob, ScraperJobStatus
 from sneakpeek.lib.queue import QueueABC
 from sneakpeek.lib.storage.base import ScraperJobsStorage
 from sneakpeek.logging import configure_logging, scraper_job_context
@@ -125,25 +125,42 @@ class LocalRunner:
     """Scraper runner that is meant to be used for local debugging"""
 
     @staticmethod
+    async def _ping_session():
+        logging.debug("Pinging session")
+
+    @staticmethod
+    async def _update_scraper_state(state: str) -> Scraper | None:
+        logging.debug(f"Updating scraper state with: {state}")
+        return None
+
+    @staticmethod
     async def run_async(
         handler: ScraperHandler,
         config: ScraperConfig,
         plugins: list[Plugin] | None = None,
+        scraper_state: str | None = None,
         logging_level: int = logging.DEBUG,
     ) -> None:
         """
         Execute scraper locally.
 
         Args:
-            config (ScraperConfig): Scraper config
+            handler (ScraperHandler): Scraper handler to execute
+            config (ScraperConfig): Scraper config to pass to the handler
+            plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Defaults to None.
+            scraper_state (str | None, optional): Scraper state to pass to the handler. Defaults to None.
+            logging_level (int, optional): Minimum logging level. Defaults to logging.DEBUG.
         """
         configure_logging(logging_level)
         logging.info("Starting scraper")
 
-        async def ping_session():
-            pass
-
-        context = ScraperContext(config, plugins, ping_session)
+        context = ScraperContext(
+            config,
+            plugins,
+            scraper_state=scraper_state,
+            ping_session_func=LocalRunner._ping_session,
+            update_scraper_state_func=LocalRunner._update_scraper_state,
+        )
         try:
             await context.start_session()
             result = await handler.run(context)
@@ -159,6 +176,25 @@ class LocalRunner:
         handler: ScraperHandler,
         config: ScraperConfig,
         plugins: list[Plugin] | None = None,
+        scraper_state: str | None = None,
         logging_level: int = logging.DEBUG,
     ) -> None:
-        asyncio.run(LocalRunner.run_async(handler, config, plugins, logging_level))
+        """
+        Execute scraper locally.
+
+        Args:
+            handler (ScraperHandler): Scraper handler to execute
+            config (ScraperConfig): Scraper config to pass to the handler
+            plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Defaults to None.
+            scraper_state (str | None, optional): Scraper state to pass to the handler. Defaults to None.
+            logging_level (int, optional): Minimum logging level. Defaults to logging.DEBUG.
+        """
+        asyncio.run(
+            LocalRunner.run_async(
+                handler,
+                config,
+                plugins,
+                scraper_state,
+                logging_level,
+            )
+        )

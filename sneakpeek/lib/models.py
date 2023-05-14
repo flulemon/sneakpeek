@@ -55,6 +55,8 @@ class Scraper(BaseModel):
     config: ScraperConfig  #: Scraper configuration that is passed to the handler
     #: Default priority to enqueue scraper jobs with
     schedule_priority: ScraperJobPriority = ScraperJobPriority.NORMAL
+    #: Scraper state (might be useful to optimise scraping, e.g. only process pages that weren't processed in the last jobs)
+    state: str | None = None
 
 
 class ScraperJob(BaseModel):
