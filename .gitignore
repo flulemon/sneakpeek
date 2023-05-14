@@ -8,3 +8,4 @@ dist
 .coverage
 htmlcov
 demo
+coverage.xml
