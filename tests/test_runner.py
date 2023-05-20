@@ -1,5 +1,6 @@
+import asyncio
 from datetime import datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 
 import pytest
 
@@ -12,7 +13,7 @@ from sneakpeek.lib.models import (
     ScraperSchedule,
 )
 from sneakpeek.lib.queue import QueueABC
-from sneakpeek.lib.storage.base import ScraperJobsStorage
+from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
 from sneakpeek.runner import LocalRunner, Runner, RunnerABC
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import ScraperContext
@@ -25,7 +26,7 @@ EXISTING_SCRAPER_HANDLER = "ExistingScraperHandler"
 NON_EXISTING_SCRAPER_HANDLER = "NonExistingScraperHandler"
 
 
-class TestScraper(ScraperHandler):
+class ScraperImpl(ScraperHandler):
     def __init__(self, succees_func, failure_func) -> None:
         self.success_func = succees_func
         self.failure_func = failure_func
@@ -35,8 +36,8 @@ class TestScraper(ScraperHandler):
         return EXISTING_SCRAPER_HANDLER
 
     async def run(self, context: ScraperContext) -> str:
+        await asyncio.sleep(0.5)
         await context.update_scraper_state("some state")
-        await context.ping_session()
         if context.params["fail"]:
             return await self.failure_func()
         return await self.success_func()
@@ -57,7 +58,7 @@ def scraper_handler(
     scraper_handler_succeeding_impl,
     scraper_handler_failing_impl,
 ) -> ScraperHandler:
-    yield TestScraper(scraper_handler_succeeding_impl, scraper_handler_failing_impl)
+    yield ScraperImpl(scraper_handler_succeeding_impl, scraper_handler_failing_impl)
 
 
 @pytest.fixture
@@ -66,18 +67,27 @@ def queue():
 
 
 @pytest.fixture
-def storage():
+def scrapers_storage():
+    yield AsyncMock()
+
+
+@pytest.fixture
+def jobs_storage():
     yield AsyncMock()
 
 
 @pytest.fixture
 def runner(
-    scraper_handler: ScraperHandler, queue: QueueABC, storage: ScraperJobsStorage
+    scraper_handler: ScraperHandler,
+    queue: QueueABC,
+    scrapers_storage: ScrapersStorage,
+    jobs_storage: ScraperJobsStorage,
 ) -> RunnerABC:
     yield Runner(
         handlers=[scraper_handler],
         queue=queue,
-        storage=storage,
+        scrapers_storage=scrapers_storage,
+        jobs_storage=jobs_storage,
     )
 
 
@@ -115,7 +125,7 @@ async def test_runner_run_job_success(
     scraper_handler_failing_impl: AsyncMock,
     runner: RunnerABC,
     queue: QueueABC,
-    storage: ScraperJobsStorage,
+    jobs_storage: ScraperJobsStorage,
 ) -> None:
     job = get_scraper_job(fail=False, existing=True)
     await runner.run(job)
@@ -124,7 +134,7 @@ async def test_runner_run_job_success(
     queue.ping_scraper_job.assert_awaited()
     assert job.status == ScraperJobStatus.SUCCEEDED
     assert job.result == RESULT
-    storage.update_scraper_job.assert_awaited_once_with(job)
+    jobs_storage.update_scraper_job.assert_has_awaits([call(job)])
 
 
 @pytest.mark.asyncio
@@ -133,7 +143,7 @@ async def test_runner_run_job_failure(
     scraper_handler_failing_impl: AsyncMock,
     runner: RunnerABC,
     queue: QueueABC,
-    storage: ScraperJobsStorage,
+    jobs_storage: ScraperJobsStorage,
 ) -> None:
     job = get_scraper_job(fail=True, existing=True)
     await runner.run(job)
@@ -142,36 +152,35 @@ async def test_runner_run_job_failure(
     queue.ping_scraper_job.assert_awaited()
     assert job.status == ScraperJobStatus.FAILED
     assert job.result == FAILURE_TEXT
-    storage.update_scraper_job.assert_awaited_once_with(job)
+    jobs_storage.update_scraper_job.assert_has_awaits([call(job)])
 
 
 @pytest.mark.asyncio
 async def test_runner_run_job_non_existent(
     runner: RunnerABC,
     queue: QueueABC,
-    storage: ScraperJobsStorage,
+    jobs_storage: ScraperJobsStorage,
 ) -> None:
     job = get_scraper_job(fail=False, existing=False)
     await runner.run(job)
-    queue.ping_scraper_job.assert_awaited()
+    queue.ping_scraper_job.assert_not_awaited()
     assert job.status == ScraperJobStatus.FAILED
     assert "NonExistingScraperHandler" in job.result
-    storage.update_scraper_job.assert_awaited_once_with(job)
+    jobs_storage.update_scraper_job.assert_has_awaits([call(job)])
 
 
 @pytest.mark.asyncio
 async def test_runner_ping_killed(
     runner: RunnerABC,
     queue: QueueABC,
-    storage: ScraperJobsStorage,
+    jobs_storage: ScraperJobsStorage,
 ) -> None:
-    job = get_scraper_job(fail=False, existing=False, status=ScraperJobStatus.KILLED)
+    job = get_scraper_job(fail=False, existing=True, status=ScraperJobStatus.KILLED)
     queue.ping_scraper_job.side_effect = ScraperJobPingFinishedError()
     await runner.run(job)
     queue.ping_scraper_job.assert_awaited()
-    # job status is not overriden
     assert job.status == ScraperJobStatus.KILLED
-    storage.update_scraper_job.assert_awaited_once_with(job)
+    jobs_storage.update_scraper_job.assert_has_awaits([call(job)])
 
 
 def test_local_runner_job_succeeds(

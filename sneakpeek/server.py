@@ -104,7 +104,7 @@ class SneakpeekServer:
             if with_scheduler
             else None
         )
-        runner = Runner(handlers, queue, jobs_storage, plugins)
+        runner = Runner(handlers, queue, scrapers_storage, jobs_storage, plugins)
         worker = (
             Worker(runner, queue, max_concurrency=worker_max_concurrency)
             if with_worker
