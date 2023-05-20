@@ -30,11 +30,11 @@ install: install-py install-js ##Install all dependencies
 
 .PHONY: test
 test: $(PY_INSTALL_STAMP) ##Run tests
-	$(POETRY) run pytest
+	$(POETRY) run pytest -n 20
 
 .PHONE: coverage
 coverage: $(PY_INSTALL_STAMP) ##Run tests
-	$(POETRY) run pytest --cov=sneakpeek tests --cov-fail-under=70 --cov-report term-missing --cov-report html
+	$(POETRY) run pytest --cov=sneakpeek tests --cov-fail-under=85 --cov-report term-missing --cov-report html --cov-report xml
 
 build-ui: ##Build frontend
 	$(YARN) --cwd $(ROOT_DIR)/front/ quasar build

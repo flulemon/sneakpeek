@@ -192,7 +192,7 @@ async def test_download_file_with_no_file_path_specified():
 @pytest.mark.asyncio
 async def test_download_file_with_file_path_specified():
     with aioresponses() as response:
-        file_path = "tmp_test_file_path"
+        file_path = test_download_file_with_file_path_specified.__name__
         try:
             url = "test_url"
             body = "test body"
@@ -218,7 +218,7 @@ async def test_download_file_with_file_path_specified():
 @pytest.mark.asyncio
 async def test_download_file_with_process_fn():
     with aioresponses() as response:
-        file_path = "tmp_test_file_path"
+        file_path = test_download_file_with_process_fn.__name__
         try:
             url = "test_url"
             body = "test body"
@@ -249,9 +249,19 @@ async def test_download_file_with_process_fn():
 @pytest.mark.asyncio
 async def test_download_multiple_files():
     with aioresponses() as response:
-        urls = ["url1", "url2", "url3"]
-        file_paths = ["file1", "file2", "file3"]
-        responses = ["body1", "body2", "body3"]
+        concurrent_responses = 3
+        urls = [
+            f"{test_download_multiple_files.__name__}_url_{i}"
+            for i in range(concurrent_responses)
+        ]
+        file_paths = [
+            f"{test_download_multiple_files.__name__}_file_{i}"
+            for i in range(concurrent_responses)
+        ]
+        responses = [
+            f"{test_download_multiple_files.__name__}_resp_{i}"
+            for i in range(concurrent_responses)
+        ]
 
         for url, resp in zip(urls, responses):
             response.get(url, status=200, body=resp)
@@ -285,10 +295,23 @@ async def test_download_multiple_files():
 @pytest.mark.asyncio
 async def test_download_multiple_files_with_process_fn():
     with aioresponses() as response:
-        urls = ["url1", "url2", "url3"]
-        file_paths = ["file1", "file2", "file3"]
-        responses = ["body1", "body2", "body3"]
-        results = ["result1", "result2", "result3"]
+        concurrent_responses = 3
+        urls = [
+            f"{test_download_multiple_files_with_process_fn.__name__}_url_{i}"
+            for i in range(concurrent_responses)
+        ]
+        file_paths = [
+            f"{test_download_multiple_files_with_process_fn.__name__}_file_{i}"
+            for i in range(concurrent_responses)
+        ]
+        responses = [
+            f"{test_download_multiple_files_with_process_fn.__name__}_resp_{i}"
+            for i in range(concurrent_responses)
+        ]
+        results = [
+            f"{test_download_multiple_files_with_process_fn.__name__}_results_{i}"
+            for i in range(concurrent_responses)
+        ]
         process_fn = AsyncMock(side_effect=results)
 
         for url, resp in zip(urls, responses):

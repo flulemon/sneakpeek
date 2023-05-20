@@ -41,6 +41,13 @@ jobs:
       - name: Tests coverage
         run: make coverage
 
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          verbose: true
+
       - name: Build package
         run: make build
 

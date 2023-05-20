@@ -7,3 +7,5 @@ dist
 .pytest_cache/
 .coverage
 htmlcov
+demo
+coverage.xml

@@ -107,9 +107,8 @@ def server_with_scheduler(storages: Storages) -> SneakpeekServer:
         scrapers_storage=scrapers_storage,
         jobs_storage=jobs_storage,
         lease_storage=lease_storage,
-        with_api=False,
+        with_web_server=False,
         scheduler_storage_poll_delay=timedelta(seconds=1),
-        expose_metrics=False,
     )
 
 
@@ -121,10 +120,9 @@ def server_with_worker_only(storages: Storages) -> SneakpeekServer:
         scrapers_storage=scrapers_storage,
         jobs_storage=jobs_storage,
         lease_storage=lease_storage,
-        with_api=False,
+        with_web_server=False,
         with_scheduler=False,
         worker_max_concurrency=1,
-        expose_metrics=False,
     )
 
 
