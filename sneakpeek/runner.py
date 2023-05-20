@@ -97,7 +97,7 @@ class Runner(RunnerABC):
             context = ScraperContext(job.scraper.config, self._plugins, ping_session)
             try:
                 await context.start_session()
-                await self._queue.ping_scraper_job(job.scraper.id, job.id)
+                await ping_session()
                 handler = self._get_handler(job)
                 job.result = await handler.run(context)
                 job.status = ScraperJobStatus.SUCCEEDED

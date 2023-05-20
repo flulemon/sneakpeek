@@ -32,7 +32,7 @@ class Priority(BaseModel):
     value: int
 
 
-def metrics(request: Request) -> Response:
+def metrics(request: Request) -> Response:  # pragma: no cover
     if "prometheus_multiproc_dir" in os.environ:
         registry = CollectorRegistry()
         MultiProcessCollector(registry)
@@ -49,7 +49,7 @@ def get_api_entrypoint(
     jobs_storage: ScraperJobsStorage,
     queue: Queue,
     handlers: list[ScraperHandler],
-) -> jsonrpc.Entrypoint:
+) -> jsonrpc.Entrypoint:  # pragma: no cover
     """
     Create public JsonRPC API entrypoint (mostly mimics storage and queue API)
 
@@ -149,7 +149,7 @@ def create_api(
     jobs_storage: ScraperJobsStorage,
     queue: QueueABC,
     handlers: list[ScraperHandler],
-) -> jsonrpc.API:
+) -> jsonrpc.API:  # pragma: no cover
     """
     Create JsonRPC API (FastAPI is used under the hood)
 
