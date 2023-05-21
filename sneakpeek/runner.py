@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timedelta
 from traceback import format_exc
 from typing import List
 
@@ -10,6 +10,7 @@ from prometheus_client import Counter
 from sneakpeek.lib.errors import (
     ScraperJobPingFinishedError,
     ScraperJobPingNotStartedError,
+    ScraperJobTimedOut,
     UnknownScraperHandlerError,
 )
 from sneakpeek.lib.models import Scraper, ScraperJob, ScraperJobStatus
@@ -78,7 +79,13 @@ class Runner(RunnerABC):
 
     async def _ping_job(self, job: ScraperJob) -> None:
         """Ping scraper job, so it's not considered dead"""
-        while True:
+        started = datetime.now()
+        deadline = (
+            started + timedelta(seconds=job.scraper.timeout_seconds)
+            if job.scraper.timeout_seconds
+            else datetime.max
+        )
+        while datetime.now() < deadline:
             try:
                 await self._queue.ping_scraper_job(job.scraper.id, job.id)
             except ScraperJobPingNotStartedError as e:
@@ -94,6 +101,7 @@ class Runner(RunnerABC):
             except Exception as e:
                 self._logger.error(f"Failed to ping scraper job: {e}")
             await asyncio.sleep(1)
+        raise ScraperJobTimedOut()
 
     @count_invocations(subsystem="scraper_runner")
     async def run(self, job: ScraperJob) -> None:

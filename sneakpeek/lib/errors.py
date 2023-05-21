@@ -26,6 +26,11 @@ class ScraperJobPingFinishedError(jsonrpc.BaseError):
     MESSAGE = "Tried to ping finished scraper job"
 
 
+class ScraperJobTimedOut(jsonrpc.BaseError):
+    CODE = 10003
+    MESSAGE = "Scraper job has timed out"
+
+
 class UnknownScraperHandlerError(jsonrpc.BaseError):
     CODE = 10002
     MESSAGE = "Unknown scraper handler"
