@@ -2,19 +2,14 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
-from sneakpeek.lib.errors import (
+from sneakpeek.errors import (
     ScraperHasActiveRunError,
     ScraperJobPingFinishedError,
     ScraperJobPingNotStartedError,
 )
-from sneakpeek.lib.models import (
-    UNSET_ID,
-    ScraperJob,
-    ScraperJobPriority,
-    ScraperJobStatus,
-)
-from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
 from sneakpeek.metrics import count_invocations, measure_latency
+from sneakpeek.models import UNSET_ID, ScraperJob, ScraperJobPriority, ScraperJobStatus
+from sneakpeek.storage.base import ScraperJobsStorage, ScrapersStorage
 
 DEFAULT_DEAD_TIMEOUT = timedelta(minutes=5)
 

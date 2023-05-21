@@ -5,9 +5,9 @@ from datetime import timedelta
 from traceback import format_exc
 from typing import Dict
 
-from sneakpeek.lib.models import ScraperJob
-from sneakpeek.lib.queue import QueueABC
 from sneakpeek.metrics import count_invocations, measure_latency, replicas_gauge
+from sneakpeek.models import ScraperJob
+from sneakpeek.queue import QueueABC
 from sneakpeek.runner import RunnerABC
 
 

@@ -1,12 +1,12 @@
 import pytest
 from fakeredis.aioredis import FakeRedis
 
-from sneakpeek.lib.errors import ScraperNotFoundError
-from sneakpeek.lib.models import UNSET_ID, Scraper, ScraperSchedule
-from sneakpeek.lib.storage.base import ScrapersStorage
-from sneakpeek.lib.storage.in_memory_storage import InMemoryScrapersStorage
-from sneakpeek.lib.storage.redis_storage import RedisScrapersStorage
+from sneakpeek.errors import ScraperNotFoundError
+from sneakpeek.models import UNSET_ID, Scraper, ScraperSchedule
 from sneakpeek.scraper_config import ScraperConfig
+from sneakpeek.storage.base import ScrapersStorage
+from sneakpeek.storage.in_memory_storage import InMemoryScrapersStorage
+from sneakpeek.storage.redis_storage import RedisScrapersStorage
 
 NON_EXISTENT_SCRAPER_ID = 10001
 

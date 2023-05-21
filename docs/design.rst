@@ -19,45 +19,45 @@ All of the components are run by the :py:class:`SneakpeekServer <sneakpeek.serve
 Scrapers Storage
 ================
 
-Storage must implement this abstract class :py:class:`sneakpeek.lib.storage.base.ScrapersStorage`.
+Storage must implement this abstract class :py:class:`sneakpeek.storage.base.ScrapersStorage`.
 Following methods are mandatory to implement:
 
-* :py:meth:`get_scrapers <sneakpeek.lib.storage.base.ScrapersStorage.get_scrapers>` - get list of all scrapers
-* :py:meth:`get_scraper <sneakpeek.lib.storage.base.ScrapersStorage.get_scraper>` - get scraper by ID
-* :py:meth:`is_read_only <sneakpeek.lib.storage.base.ScrapersStorage.is_read_only>` - whether the storage allows modifications of the scrapers list and its metadata
+* :py:meth:`get_scrapers <sneakpeek.storage.base.ScrapersStorage.get_scrapers>` - get list of all scrapers
+* :py:meth:`get_scraper <sneakpeek.storage.base.ScrapersStorage.get_scraper>` - get scraper by ID
+* :py:meth:`is_read_only <sneakpeek.storage.base.ScrapersStorage.is_read_only>` - whether the storage allows modifications of the scrapers list and its metadata
 
 Following methods are optional to implement:
 
-* :py:meth:`create_scraper <sneakpeek.lib.storage.base.ScrapersStorage.create_scraper>` - create a new scraper
-* :py:meth:`delete_scraper <sneakpeek.lib.storage.base.ScrapersStorage.delete_scraper>` - delete scraper by ID
-* :py:meth:`update_scraper <sneakpeek.lib.storage.base.ScrapersStorage.update_scraper>` - update existing scraper
-* :py:meth:`maybe_get_scraper <sneakpeek.lib.storage.base.ScrapersStorage.maybe_get_scraper>` - get scraper by ID if it exists
-* :py:meth:`search_scrapers <sneakpeek.lib.storage.base.ScrapersStorage.search_scrapers>` - search scrapers using given filters
+* :py:meth:`create_scraper <sneakpeek.storage.base.ScrapersStorage.create_scraper>` - create a new scraper
+* :py:meth:`delete_scraper <sneakpeek.storage.base.ScrapersStorage.delete_scraper>` - delete scraper by ID
+* :py:meth:`update_scraper <sneakpeek.storage.base.ScrapersStorage.update_scraper>` - update existing scraper
+* :py:meth:`maybe_get_scraper <sneakpeek.storage.base.ScrapersStorage.maybe_get_scraper>` - get scraper by ID if it exists
+* :py:meth:`search_scrapers <sneakpeek.storage.base.ScrapersStorage.search_scrapers>` - search scrapers using given filters
 
 Currently there 2 storage implementations:
 
-* :py:class:`InMemoryScrapersStorage <sneakpeek.lib.storage.in_memory_storage.InMemoryScrapersStorage>` - in-memory storage. Should either be used in **development** environment or if the list of scrapers is static and wouldn't be changed.
-* :py:class:`RedisScrapersStorage <sneakpeek.lib.storage.in_memory_storage.RedisScrapersStorage>` - redis storage.
+* :py:class:`InMemoryScrapersStorage <sneakpeek.storage.in_memory_storage.InMemoryScrapersStorage>` - in-memory storage. Should either be used in **development** environment or if the list of scrapers is static and wouldn't be changed.
+* :py:class:`RedisScrapersStorage <sneakpeek.storage.in_memory_storage.RedisScrapersStorage>` - redis storage.
 
 ================
 Jobs queue
 ================
 
-Jobs queue must implement this abstract class :py:class:`sneakpeek.lib.storage.base.ScraperJobsStorage`.
+Jobs queue must implement this abstract class :py:class:`sneakpeek.storage.base.ScraperJobsStorage`.
 Following methods must be implemented:
 
-* :py:meth:`get_scraper_jobs <sneakpeek.lib.storage.base.ScraperJobsStorage.get_scraper_jobs>` - get scraper jobs by scraper ID
-* :py:meth:`add_scraper_job <sneakpeek.lib.storage.base.ScraperJobsStorage.add_scraper_job>` - add new scraper job
-* :py:meth:`update_scraper_job <sneakpeek.lib.storage.base.ScraperJobsStorage.update_scraper_job>` - update existing scraper job
-* :py:meth:`get_scraper_job <sneakpeek.lib.storage.base.ScraperJobsStorage.get_scraper_job>` - get existing scraper job by scraper ID and scraper job ID
-* :py:meth:`dequeue_scraper_job <sneakpeek.lib.storage.base.ScraperJobsStorage.dequeue_scraper_job>` - dequeue scraper job from queue with given priority
-* :py:meth:`delete_old_scraper_jobs <sneakpeek.lib.storage.base.ScraperJobsStorage.delete_old_scraper_jobs>` - delete old historical scraper jobs
-* :py:meth:`get_queue_len <sneakpeek.lib.storage.base.ScraperJobsStorage.get_queue_len>` - get number of pending scraper jobs in the queue with given priority
+* :py:meth:`get_scraper_jobs <sneakpeek.storage.base.ScraperJobsStorage.get_scraper_jobs>` - get scraper jobs by scraper ID
+* :py:meth:`add_scraper_job <sneakpeek.storage.base.ScraperJobsStorage.add_scraper_job>` - add new scraper job
+* :py:meth:`update_scraper_job <sneakpeek.storage.base.ScraperJobsStorage.update_scraper_job>` - update existing scraper job
+* :py:meth:`get_scraper_job <sneakpeek.storage.base.ScraperJobsStorage.get_scraper_job>` - get existing scraper job by scraper ID and scraper job ID
+* :py:meth:`dequeue_scraper_job <sneakpeek.storage.base.ScraperJobsStorage.dequeue_scraper_job>` - dequeue scraper job from queue with given priority
+* :py:meth:`delete_old_scraper_jobs <sneakpeek.storage.base.ScraperJobsStorage.delete_old_scraper_jobs>` - delete old historical scraper jobs
+* :py:meth:`get_queue_len <sneakpeek.storage.base.ScraperJobsStorage.get_queue_len>` - get number of pending scraper jobs in the queue with given priority
 
 Currently there 2 storage implementations:
 
-* :py:class:`InMemoryScraperJobsStorage <sneakpeek.lib.storage.in_memory_storage.InMemoryScraperJobsStorage>` - in-memory storage. Should only be used in **development** environment.
-* :py:class:`RedisScraperJobsStorage <sneakpeek.lib.storage.in_memory_storage.RedisScraperJobsStorage>` - redis storage.
+* :py:class:`InMemoryScraperJobsStorage <sneakpeek.storage.in_memory_storage.InMemoryScraperJobsStorage>` - in-memory storage. Should only be used in **development** environment.
+* :py:class:`RedisScraperJobsStorage <sneakpeek.storage.in_memory_storage.RedisScraperJobsStorage>` - redis storage.
 
 ================
 Lease storage
@@ -67,16 +67,16 @@ Lease storage is used by scheduler to ensure that at any point of time there's n
 than 1 active scheduler instance which can enqueue scraper jobs. This disallows concurrent
 execution of the scraper.
 
-Lease storage must implement this abstract class :py:class:`sneakpeek.lib.storage.base.LeaseStorage`.
+Lease storage must implement this abstract class :py:class:`sneakpeek.storage.base.LeaseStorage`.
 Following methods must be implemented:
 
-* :py:meth:`maybe_acquire_lease <sneakpeek.lib.storage.base.LeaseStorage.maybe_acquire_lease>` - try to acquire lease (or global lock)
-* :py:meth:`release_lease <sneakpeek.lib.storage.base.LeaseStorage.release_lease>` - release acquired lease
+* :py:meth:`maybe_acquire_lease <sneakpeek.storage.base.LeaseStorage.maybe_acquire_lease>` - try to acquire lease (or global lock)
+* :py:meth:`release_lease <sneakpeek.storage.base.LeaseStorage.release_lease>` - release acquired lease
 
 Currently there 2 storage implementations:
 
-* :py:class:`InMemoryLeaseStorage <sneakpeek.lib.storage.in_memory_storage.InMemoryLeaseStorage>` - in-memory storage. Should only be used in **development** environment.
-* :py:class:`RedisLeaseStorage <sneakpeek.lib.storage.in_memory_storage.RedisLeaseStorage>` - redis storage.
+* :py:class:`InMemoryLeaseStorage <sneakpeek.storage.in_memory_storage.InMemoryLeaseStorage>` - in-memory storage. Should only be used in **development** environment.
+* :py:class:`RedisLeaseStorage <sneakpeek.storage.in_memory_storage.RedisLeaseStorage>` - redis storage.
 
 ================
 Scheduler

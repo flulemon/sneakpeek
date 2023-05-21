@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import List
 
-from sneakpeek.lib.models import Lease, Scraper, ScraperJob, ScraperJobPriority
+from sneakpeek.models import Lease, Scraper, ScraperJob, ScraperJobPriority
 
 
 class ScrapersStorage(ABC):
@@ -45,7 +45,7 @@ class ScrapersStorage(ABC):
 
     @abstractmethod
     async def get_scraper(self, id: int) -> Scraper:
-        """Get scraper by ID. Throws :py:class:`ScraperNotFoundError <sneakpeek.lib.errors.ScraperNotFoundError>` if scraper doesn't exist
+        """Get scraper by ID. Throws :py:class:`ScraperNotFoundError <sneakpeek.errors.ScraperNotFoundError>` if scraper doesn't exist
 
         Args:
             id (int): Scraper ID
@@ -140,8 +140,8 @@ class ScraperJobsStorage(ABC):
     @abstractmethod
     async def get_scraper_job(self, scraper_id: int, scraper_job_id: int) -> ScraperJob:
         """Get scraper job by ID.
-        Throws :py:class:`ScraperNotFoundError <sneakpeek.lib.errors.ScraperNotFoundError>` if scraper doesn't exist
-        Throws :py:class:`ScraperJobNotFoundError <sneakpeek.lib.errors.ScraperJobNotFoundError>` if scraper job doesn't exist
+        Throws :py:class:`ScraperNotFoundError <sneakpeek.errors.ScraperNotFoundError>` if scraper doesn't exist
+        Throws :py:class:`ScraperJobNotFoundError <sneakpeek.errors.ScraperJobNotFoundError>` if scraper job doesn't exist
 
         Args:
             scraper_id (int): Scraper ID

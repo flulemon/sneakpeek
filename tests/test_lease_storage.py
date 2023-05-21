@@ -4,9 +4,9 @@ from datetime import timedelta
 import pytest
 from fakeredis.aioredis import FakeRedis
 
-from sneakpeek.lib.storage.base import LeaseStorage
-from sneakpeek.lib.storage.in_memory_storage import InMemoryLeaseStorage
-from sneakpeek.lib.storage.redis_storage import RedisLeaseStorage
+from sneakpeek.storage.base import LeaseStorage
+from sneakpeek.storage.in_memory_storage import InMemoryLeaseStorage
+from sneakpeek.storage.redis_storage import RedisLeaseStorage
 
 NON_EXISTENT_SCRAPER_ID = 10001
 

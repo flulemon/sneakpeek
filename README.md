@@ -97,8 +97,8 @@ do so let\'s configure **SneakpeekServer**:
 ```python3
 # file: main.py
 
-from sneakpeek.lib.models import Scraper, ScraperJobPriority, ScraperSchedule
-from sneakpeek.lib.storage.in_memory_storage import (
+from sneakpeek.models import Scraper, ScraperJobPriority, ScraperSchedule
+from sneakpeek.storage.in_memory_storage import (
     InMemoryLeaseStorage,
     InMemoryScraperJobsStorage,
     InMemoryScrapersStorage,

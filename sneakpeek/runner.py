@@ -7,20 +7,20 @@ from typing import List
 
 from prometheus_client import Counter
 
-from sneakpeek.lib.errors import (
+from sneakpeek.errors import (
     ScraperJobPingFinishedError,
     ScraperJobPingNotStartedError,
     ScraperJobTimedOut,
     UnknownScraperHandlerError,
 )
-from sneakpeek.lib.models import Scraper, ScraperJob, ScraperJobStatus
-from sneakpeek.lib.queue import QueueABC
-from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
 from sneakpeek.logging import configure_logging, scraper_job_context
 from sneakpeek.metrics import count_invocations, delay_histogram
+from sneakpeek.models import Scraper, ScraperJob, ScraperJobStatus
+from sneakpeek.queue import QueueABC
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import Plugin, ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
+from sneakpeek.storage.base import ScraperJobsStorage, ScrapersStorage
 
 scraper_jobs = Counter(
     name="scraper_jobs",

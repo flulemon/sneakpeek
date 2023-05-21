@@ -8,12 +8,12 @@ import fastapi_jsonrpc as jsonrpc
 import uvicorn
 
 from sneakpeek.api import create_api
-from sneakpeek.lib.queue import Queue
-from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
+from sneakpeek.queue import Queue
 from sneakpeek.runner import Runner
 from sneakpeek.scheduler import Scheduler, SchedulerABC
 from sneakpeek.scraper_context import Plugin
 from sneakpeek.scraper_handler import ScraperHandler
+from sneakpeek.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 from sneakpeek.worker import Worker, WorkerABC
 
 WEB_SERVER_DEFAULT_PORT = 8080

@@ -3,26 +3,26 @@ from datetime import datetime
 import pytest
 from fakeredis.aioredis import FakeRedis
 
-from sneakpeek.lib.errors import (
+from sneakpeek.errors import (
     ScraperHasActiveRunError,
     ScraperJobPingFinishedError,
     ScraperJobPingNotStartedError,
 )
-from sneakpeek.lib.models import (
+from sneakpeek.models import (
     UNSET_ID,
     Scraper,
     ScraperJobPriority,
     ScraperJobStatus,
     ScraperSchedule,
 )
-from sneakpeek.lib.queue import Queue
-from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
-from sneakpeek.lib.storage.in_memory_storage import (
+from sneakpeek.queue import Queue
+from sneakpeek.scraper_config import ScraperConfig
+from sneakpeek.storage.base import ScraperJobsStorage, ScrapersStorage
+from sneakpeek.storage.in_memory_storage import (
     InMemoryScraperJobsStorage,
     InMemoryScrapersStorage,
 )
-from sneakpeek.lib.storage.redis_storage import RedisScraperJobsStorage
-from sneakpeek.scraper_config import ScraperConfig
+from sneakpeek.storage.redis_storage import RedisScraperJobsStorage
 
 NON_EXISTENT_SCRAPER_ID = 10001
 

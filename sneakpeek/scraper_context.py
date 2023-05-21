@@ -12,7 +12,7 @@ from uuid import uuid4
 
 import aiohttp
 
-from sneakpeek.lib.models import Scraper
+from sneakpeek.models import Scraper
 from sneakpeek.scraper_config import ScraperConfig
 
 HttpHeaders = dict[str, str]

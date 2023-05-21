@@ -4,20 +4,20 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
-from sneakpeek.lib.errors import ScraperJobPingFinishedError
-from sneakpeek.lib.models import (
+from sneakpeek.errors import ScraperJobPingFinishedError
+from sneakpeek.models import (
     Scraper,
     ScraperJob,
     ScraperJobPriority,
     ScraperJobStatus,
     ScraperSchedule,
 )
-from sneakpeek.lib.queue import QueueABC
-from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
+from sneakpeek.queue import QueueABC
 from sneakpeek.runner import LocalRunner, Runner, RunnerABC
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
+from sneakpeek.storage.base import ScraperJobsStorage, ScrapersStorage
 
 FAILURE_TEXT = "failure"
 RESULT = "result"

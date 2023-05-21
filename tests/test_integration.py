@@ -5,27 +5,27 @@ from unittest.mock import patch
 import pytest
 from fakeredis.aioredis import FakeRedis
 
-from sneakpeek.lib.models import (
+from sneakpeek.models import (
     Scraper,
     ScraperJobPriority,
     ScraperJobStatus,
     ScraperSchedule,
 )
-from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
-from sneakpeek.lib.storage.in_memory_storage import (
-    InMemoryLeaseStorage,
-    InMemoryScraperJobsStorage,
-    InMemoryScrapersStorage,
-)
-from sneakpeek.lib.storage.redis_storage import (
-    RedisLeaseStorage,
-    RedisScraperJobsStorage,
-    RedisScrapersStorage,
-)
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
 from sneakpeek.server import SneakpeekServer
+from sneakpeek.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
+from sneakpeek.storage.in_memory_storage import (
+    InMemoryLeaseStorage,
+    InMemoryScraperJobsStorage,
+    InMemoryScrapersStorage,
+)
+from sneakpeek.storage.redis_storage import (
+    RedisLeaseStorage,
+    RedisScraperJobsStorage,
+    RedisScrapersStorage,
+)
 
 SCRAPER_1_ID = 100000001
 SCRAPER_2_ID = 100000002

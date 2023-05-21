@@ -13,11 +13,11 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from prometheus_client import Gauge
 
-from sneakpeek.lib.errors import ScraperHasActiveRunError
-from sneakpeek.lib.models import Lease, Scraper, ScraperJobPriority, ScraperSchedule
-from sneakpeek.lib.queue import QueueABC
-from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
+from sneakpeek.errors import ScraperHasActiveRunError
 from sneakpeek.metrics import count_invocations, measure_latency, replicas_gauge
+from sneakpeek.models import Lease, Scraper, ScraperJobPriority, ScraperSchedule
+from sneakpeek.queue import QueueABC
+from sneakpeek.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 
 DEFAULT_LEASE_DURATION = timedelta(minutes=1)
 DEFAULT_STORAGE_POLL_DELAY = timedelta(seconds=5)
