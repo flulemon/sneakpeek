@@ -79,13 +79,13 @@ class Runner(RunnerABC):
 
     async def _ping_job(self, job: ScraperJob) -> None:
         """Ping scraper job, so it's not considered dead"""
-        started = datetime.now()
+        started = datetime.utcnow()
         deadline = (
             started + timedelta(seconds=job.scraper.timeout_seconds)
             if job.scraper.timeout_seconds
             else datetime.max
         )
-        while datetime.now() < deadline:
+        while datetime.utcnow() < deadline:
             try:
                 await self._queue.ping_scraper_job(job.scraper.id, job.id)
             except ScraperJobPingNotStartedError as e:
