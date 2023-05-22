@@ -148,7 +148,7 @@ class Scheduler(SchedulerABC):
                 f"Failed to enqueue {scraper_human_id}. Traceback: {format_exc()}"
             )
 
-    async def _get_scraper_trigger(self, scraper: Scraper) -> BaseTrigger:
+    async def _get_scraper_trigger(self, scraper: Scraper) -> BaseTrigger | None:
         start_date = datetime.min
         scraper_jobs = await self._jobs_storage.get_scraper_jobs(scraper.id)
         if scraper_jobs:
@@ -169,6 +169,10 @@ class Scheduler(SchedulerABC):
                 return IntervalTrigger(minutes=1, start_date=start_date)
             case ScraperSchedule.EVERY_SECOND:
                 return IntervalTrigger(seconds=1, start_date=start_date)
+            case ScraperSchedule.INACTIVE:
+                return None
+            case _:
+                raise ValueError(f"Unsupported Scraper schedule: {scraper.schedule}")
 
     def _remove_scraper_job(self, scraper) -> None:
         logging.info(f"Removing scraper enqueue job: {scraper}")
@@ -178,7 +182,9 @@ class Scheduler(SchedulerABC):
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
     async def _update_scraper_job(
-        self, scraper: Scraper, remove_existing: bool
+        self,
+        scraper: Scraper,
+        remove_existing: bool,
     ) -> None:
         """Add or update internal scheduler job for the scraper.
 
@@ -194,12 +200,13 @@ class Scheduler(SchedulerABC):
         self._scrapers[scraper.id] = scraper
         if remove_existing:
             self._scheduler.remove_job(job_id)
-        self._scheduler.add_job(
-            self._enqueue_scraper,
-            trigger,
-            id=job_id,
-            args=(scraper.id,),
-        )
+        if trigger:
+            self._scheduler.add_job(
+                self._enqueue_scraper,
+                trigger,
+                id=job_id,
+                args=(scraper.id,),
+            )
 
     @measure_latency(subsystem="scheduler")
     @count_invocations(subsystem="scheduler")
@@ -208,10 +215,13 @@ class Scheduler(SchedulerABC):
         scrapers = await self._scrapers_storage.get_scrapers()
         index = {scraper.id: scraper for scraper in scrapers}
         for existing in self._scrapers.values():
-            if existing.id not in index:
+            if (
+                existing.id not in index
+                or existing.schedule == ScraperSchedule.INACTIVE
+            ):
                 self._remove_scraper_job(existing)
             elif self._scrapers[existing.id] != index[existing.id]:
-                await self._update_scraper_job(existing, remove_existing=True)
+                await self._update_scraper_job(index[existing.id], remove_existing=True)
 
         for scraper in index.values():
             if scraper.id not in self._scrapers:
