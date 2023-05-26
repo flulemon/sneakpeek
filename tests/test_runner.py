@@ -115,7 +115,7 @@ def get_scraper_job(
         ),
         status=status,
         priority=ScraperJobPriority.NORMAL,
-        created_at=datetime.now(),
+        created_at=datetime.utcnow(),
     )
 
 
