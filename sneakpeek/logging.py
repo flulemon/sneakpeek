@@ -2,7 +2,7 @@ import logging
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-from sneakpeek.lib.models import ScraperJob
+from sneakpeek.models import ScraperJob
 
 ctx_scraper_job = ContextVar("scraper_job")
 

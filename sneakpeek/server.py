@@ -8,12 +8,12 @@ import fastapi_jsonrpc as jsonrpc
 import uvicorn
 
 from sneakpeek.api import create_api
-from sneakpeek.lib.queue import Queue
-from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
+from sneakpeek.queue import Queue
 from sneakpeek.runner import Runner
 from sneakpeek.scheduler import Scheduler, SchedulerABC
 from sneakpeek.scraper_context import Plugin
 from sneakpeek.scraper_handler import ScraperHandler
+from sneakpeek.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 from sneakpeek.worker import Worker, WorkerABC
 
 WEB_SERVER_DEFAULT_PORT = 8080
@@ -104,7 +104,7 @@ class SneakpeekServer:
             if with_scheduler
             else None
         )
-        runner = Runner(handlers, queue, jobs_storage, plugins)
+        runner = Runner(handlers, queue, scrapers_storage, jobs_storage, plugins)
         worker = (
             Worker(runner, queue, max_concurrency=worker_max_concurrency)
             if with_worker

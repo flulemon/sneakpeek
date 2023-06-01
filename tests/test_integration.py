@@ -1,31 +1,31 @@
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
 from fakeredis.aioredis import FakeRedis
 
-from sneakpeek.lib.models import (
+from sneakpeek.models import (
     Scraper,
     ScraperJobPriority,
     ScraperJobStatus,
     ScraperSchedule,
 )
-from sneakpeek.lib.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
-from sneakpeek.lib.storage.in_memory_storage import (
-    InMemoryLeaseStorage,
-    InMemoryScraperJobsStorage,
-    InMemoryScrapersStorage,
-)
-from sneakpeek.lib.storage.redis_storage import (
-    RedisLeaseStorage,
-    RedisScraperJobsStorage,
-    RedisScrapersStorage,
-)
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
 from sneakpeek.server import SneakpeekServer
+from sneakpeek.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
+from sneakpeek.storage.in_memory_storage import (
+    InMemoryLeaseStorage,
+    InMemoryScraperJobsStorage,
+    InMemoryScrapersStorage,
+)
+from sneakpeek.storage.redis_storage import (
+    RedisLeaseStorage,
+    RedisScraperJobsStorage,
+    RedisScrapersStorage,
+)
 
 SCRAPER_1_ID = 100000001
 SCRAPER_2_ID = 100000002
@@ -35,13 +35,15 @@ MIN_SECONDS_TO_EXECUTE_RUN = 2.1
 HANDLER_NAME = "test_scraper_handler"
 
 
-class TestScraper(ScraperHandler):
+class ScraperImpl(ScraperHandler):
     @property
     def name(self) -> str:
         return HANDLER_NAME
 
     async def run(self, context: ScraperContext) -> str:
-        await context.get(TEST_URL)
+        url = (context.params or {}).get("url") or TEST_URL
+        await context.get(url)
+        return url
 
 
 @pytest.fixture
@@ -103,7 +105,7 @@ def storages(request) -> Storages:
 def server_with_scheduler(storages: Storages) -> SneakpeekServer:
     scrapers_storage, jobs_storage, lease_storage = storages
     return SneakpeekServer.create(
-        handlers=[TestScraper()],
+        handlers=[ScraperImpl()],
         scrapers_storage=scrapers_storage,
         jobs_storage=jobs_storage,
         lease_storage=lease_storage,
@@ -116,7 +118,7 @@ def server_with_scheduler(storages: Storages) -> SneakpeekServer:
 def server_with_worker_only(storages: Storages) -> SneakpeekServer:
     scrapers_storage, jobs_storage, lease_storage = storages
     return SneakpeekServer.create(
-        handlers=[TestScraper()],
+        handlers=[ScraperImpl()],
         scrapers_storage=scrapers_storage,
         jobs_storage=jobs_storage,
         lease_storage=lease_storage,
@@ -210,3 +212,84 @@ async def test_jobs_are_executed_according_to_priority(
             mocked_request.assert_awaited_with(TEST_URL)
     finally:
         server_with_worker_only.stop()
+
+
+@pytest.mark.asyncio
+async def test_scraper_job_updates(
+    server_with_scheduler: SneakpeekServer,
+    storages: Storages,
+):
+    scraper_storage, jobs_storage, _ = storages
+
+    # disable all built-in scrapers
+    for scraper in await scraper_storage.get_scrapers():
+        scraper.schedule = ScraperSchedule.INACTIVE
+        await scraper_storage.update_scraper(scraper)
+
+    scraper = await scraper_storage.get_scraper(SCRAPER_1_ID)
+
+    async def verify_has_successful_job(expected_result: str, timeout: timedelta):
+        started = datetime.utcnow()
+        deadline = started + timeout
+        while True:
+            try:
+                jobs = await jobs_storage.get_scraper_jobs(SCRAPER_1_ID)
+                successful_jobs = [
+                    j
+                    for j in jobs
+                    if j.created_at > started
+                    and j.result == expected_result
+                    and j.status == ScraperJobStatus.SUCCEEDED
+                ]
+                assert len(successful_jobs) > 0, (
+                    f"Expected scraper to have at least one successful "
+                    f"job created after {started} within {timeout} with result={expected_result}. "
+                    f"Actual scraper jobs: {jobs}"
+                )
+                return
+            except AssertionError:
+                if datetime.utcnow() > deadline:
+                    raise
+            await asyncio.sleep(0.1)
+
+    async def verify_has_no_successful_job(expected_result: str, timeout: timedelta):
+        started = datetime.utcnow()
+        deadline = started + timeout
+        while datetime.utcnow() < deadline:
+            jobs = await jobs_storage.get_scraper_jobs(SCRAPER_1_ID)
+            successful_jobs = [
+                j
+                for j in jobs
+                if j.created_at > started
+                and j.result == expected_result
+                and j.status == ScraperJobStatus.SUCCEEDED
+            ]
+            assert successful_jobs == []
+            await asyncio.sleep(0.1)
+
+    try:
+        with patch("sneakpeek.scraper_context.ScraperContext.get"):
+            server_with_scheduler.serve(blocking=False)
+
+            # Step 1: Enable scraper and wait for it to be executed
+            scraper.schedule = ScraperSchedule.EVERY_SECOND
+            scraper = await scraper_storage.update_scraper(scraper)
+            await verify_has_successful_job(TEST_URL, timedelta(seconds=3))
+
+            # Step 2: Update return value and wait for a job with this value
+            scraper.config.params = {"url": "some_other_url"}
+            scraper = await scraper_storage.update_scraper(scraper)
+            await verify_has_successful_job("some_other_url", timedelta(seconds=3))
+
+            # Step 3: Disable it and make sure there are no jobs at all
+            scraper.config.params = {"url": "should_never_be_returned"}
+            scraper.schedule = ScraperSchedule.INACTIVE
+            scraper = await scraper_storage.update_scraper(scraper)
+            await asyncio.sleep(2)
+            await verify_has_no_successful_job(
+                "should_never_be_returned",
+                timedelta(seconds=MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN),
+            )
+
+    finally:
+        server_with_scheduler.stop()

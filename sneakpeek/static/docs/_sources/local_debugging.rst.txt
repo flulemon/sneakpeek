@@ -1,5 +1,5 @@
 ################################
-Local scraper handler debugging
+Local handler debugging
 ################################
 
 You can easily test handler without running full-featured server. Here's how you can do that for the `DemoScraper` that we have developed in the :doc:`tutorial </quick_start>`.

@@ -48,14 +48,7 @@ def context(
     plugins: list[Plugin] | None = None,
     plugins_configs: dict[str, Any] | None = None,
 ) -> ScraperContext:
-    async def ping():
-        pass
-
-    return ScraperContext(
-        ScraperConfig(plugins=plugins_configs),
-        plugins=plugins,
-        ping_session_func=ping,
-    )
+    return ScraperContext(ScraperConfig(plugins=plugins_configs), plugins=plugins)
 
 
 @pytest.mark.parametrize("method", ["get", "post", "put", "delete", "options", "head"])

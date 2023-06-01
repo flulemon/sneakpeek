@@ -57,6 +57,8 @@ class Scraper(BaseModel):
     schedule_priority: ScraperJobPriority = ScraperJobPriority.NORMAL
     #: Scraper state (might be useful to optimise scraping, e.g. only process pages that weren't processed in the last jobs)
     state: str | None = None
+    #: Timeout for the single scraper job
+    timeout_seconds: int | None = None
 
 
 class ScraperJob(BaseModel):

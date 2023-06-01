@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from asyncio import AbstractEventLoop, Lock, get_running_loop, sleep
@@ -5,9 +6,9 @@ from datetime import timedelta
 from traceback import format_exc
 from typing import Dict
 
-from sneakpeek.lib.models import ScraperJob
-from sneakpeek.lib.queue import QueueABC
 from sneakpeek.metrics import count_invocations, measure_latency, replicas_gauge
+from sneakpeek.models import ScraperJob
+from sneakpeek.queue import QueueABC
 from sneakpeek.runner import RunnerABC
 
 
@@ -46,6 +47,7 @@ class Worker(WorkerABC):
         self._queue = queue
         self._active: Dict[int, ScraperJob] = {}
         self._max_concurrency = max_concurrency
+        self._worker_loop_task: asyncio.Task | None = None
 
     @count_invocations(subsystem="worker")
     async def _execute_scraper(self, scraper_job: ScraperJob) -> None:
@@ -101,8 +103,9 @@ class Worker(WorkerABC):
         self._running = True
         if not self._loop:
             self._loop = get_running_loop()
-        self._loop.create_task(self._worker_loop())
+        self._worker_loop_task = self._loop.create_task(self._worker_loop())
 
     def stop(self) -> None:
         self._logger.info(f"Stopping worker. There are {len(self._active)} jobs")
         self._running = False
+        self._worker_loop_task.cancel()

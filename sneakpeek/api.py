@@ -14,17 +14,12 @@ from prometheus_client import (
 from prometheus_client.multiprocess import MultiProcessCollector
 from pydantic import BaseModel
 
-from sneakpeek.lib.errors import ScraperHasActiveRunError, ScraperNotFoundError
-from sneakpeek.lib.models import (
-    Scraper,
-    ScraperJob,
-    ScraperJobPriority,
-    ScraperSchedule,
-)
-from sneakpeek.lib.queue import Queue, QueueABC
-from sneakpeek.lib.storage.base import ScraperJobsStorage, ScrapersStorage
+from sneakpeek.errors import ScraperHasActiveRunError, ScraperNotFoundError
 from sneakpeek.metrics import count_invocations, measure_latency
+from sneakpeek.models import Scraper, ScraperJob, ScraperJobPriority, ScraperSchedule
+from sneakpeek.queue import Queue, QueueABC
 from sneakpeek.scraper_handler import ScraperHandler
+from sneakpeek.storage.base import ScraperJobsStorage, ScrapersStorage
 
 
 class Priority(BaseModel):

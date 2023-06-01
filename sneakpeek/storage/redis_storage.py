@@ -2,11 +2,10 @@ from datetime import datetime, timedelta
 
 from redis.asyncio import Redis
 
-from sneakpeek.lib.errors import ScraperJobNotFoundError, ScraperNotFoundError
-from sneakpeek.lib.models import Lease, Scraper, ScraperJob, ScraperJobPriority
+from sneakpeek.errors import ScraperJobNotFoundError, ScraperNotFoundError
 from sneakpeek.metrics import count_invocations, measure_latency
-
-from .base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
+from sneakpeek.models import Lease, Scraper, ScraperJob, ScraperJobPriority
+from sneakpeek.storage.base import LeaseStorage, ScraperJobsStorage, ScrapersStorage
 
 
 class RedisScrapersStorage(ScrapersStorage):
