@@ -4,8 +4,6 @@ from typing import Any, Awaitable, Callable, Mapping
 
 from pydantic import BaseModel
 
-from sneakpeek.runner import LocalRunner
-from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.scraper_context import ScraperContext
 from sneakpeek.scraper_handler import ScraperHandler
 
@@ -50,32 +48,3 @@ class DynamicScraperHandler(ScraperHandler):
             return json.dumps(result, indent=4)
         except TypeError as ex:
             return f"Failed to serialize result with error: {ex}"
-
-
-def main():
-    LocalRunner.run(
-        DynamicScraperHandler(),
-        ScraperConfig(
-            params=DynamicScraperParams(
-                source_code="""
-import asyncio
-from sneakpeek.scraper_context import ScraperContext
-
-async def async_dep_func(x: str, ctx: ScraperContext) -> str:
-    resp = await ctx.get(x)
-    return await resp.text()
-
-def sync_dep_func(x: str) -> str:
-    return x * 2
-
-async def handler(ctx: ScraperContext) -> str:
-    resp = await async_dep_func('http://google.com', ctx)
-    return {'text': sync_dep_func(resp)}
-                """
-            ).dict(),
-        ),
-    )
-
-
-if __name__ == "__main__":
-    main()
