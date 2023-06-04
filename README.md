@@ -221,3 +221,10 @@ For the full documentation please visit [sneakpeek-py.readthedocs.io](https://sn
 ## Contributing
 
 Please take a look at our [contributing](https://github.com/flulemon/sneakpeek/blob/main/CONTRIBUTING.md) guidelines if you're interested in helping!
+
+## Future plans
+
+- Support for developing and executing scrapers right in the browser
+- Plugins for headful and headless browser engines (Selenium and Playwright)
+- SQL storage implementation
+- Advanced monitoring for the scrapers' health
