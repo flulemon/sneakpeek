@@ -8,6 +8,7 @@ import fastapi_jsonrpc as jsonrpc
 import uvicorn
 
 from sneakpeek.api import create_api
+from sneakpeek.dynamic_scraper_handler import DynamicScraperHandler
 from sneakpeek.queue import Queue
 from sneakpeek.runner import Runner
 from sneakpeek.scheduler import Scheduler, SchedulerABC
@@ -72,6 +73,7 @@ class SneakpeekServer:
         scheduler_storage_poll_delay: timedelta = SCHEDULER_DEFAULT_STORAGE_POLL_DELAY,
         scheduler_lease_duration: timedelta = SCHEDULER_DEFAULT_LEASE_DURATION,
         plugins: list[Plugin] | None = None,
+        add_dynamic_scraper_handler: bool = False,
     ):
         """
         Create Sneakpeek server using default API, worker and scheduler implementations
@@ -89,7 +91,7 @@ class SneakpeekServer:
             scheduler_storage_poll_delay (timedelta, optional): How much scheduler wait before polling storage for scrapers updates. Defaults to 5 seconds.
             scheduler_lease_duration (timedelta, optional): How long scheduler lease lasts. Lease is required for scheduler to be able to create new scraper jobs. This is needed so at any point of time there's only one active scheduler instance. Defaults to 1 minute.
             plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Can be omitted if run_worker is False. Defaults to None.
-            metrics_port (int, optional): Port which is used to expose metric. Defaults to 9090.
+            add_dynamic_scraper_handler (bool, optional): Whether to add dynamic scraper handler which can execute arbitrary user scripts. Defaults to False.
         """
         queue = Queue(scrapers_storage, jobs_storage)
         scheduler = (
@@ -104,6 +106,12 @@ class SneakpeekServer:
             if with_scheduler
             else None
         )
+
+        if add_dynamic_scraper_handler:
+            dynamic_scraper_handler = DynamicScraperHandler()
+            if not any(h for h in handlers if h.name == dynamic_scraper_handler.name):
+                handlers.append(dynamic_scraper_handler)
+
         runner = Runner(handlers, queue, scrapers_storage, jobs_storage, plugins)
         worker = (
             Worker(runner, queue, max_concurrency=worker_max_concurrency)
