@@ -1,4 +1,6 @@
 const { configure } = require('quasar/wrappers');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+
 
 
 module.exports = configure(function (ctx) {
@@ -26,7 +28,13 @@ module.exports = configure(function (ctx) {
       vueRouterMode: 'hash',
       env: {
         API_BASE_URL: ctx.dev ? 'http://localhost:8080/api/v1/jsonrpc' : '/api/v1/jsonrpc',
-      }
+      },
+      chainWebpack(chain) {
+        chain.plugin("monaco-editor").use(MonacoWebpackPlugin, [{
+          languages: ["python"],
+          features: ["coreCommands", "find"],
+        }]);
+      },
     },
     devServer: {
       open: true
