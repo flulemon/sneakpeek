@@ -14,12 +14,21 @@ from prometheus_client import (
 from prometheus_client.multiprocess import MultiProcessCollector
 from pydantic import BaseModel
 
-from sneakpeek.errors import ScraperHasActiveRunError, ScraperNotFoundError
 from sneakpeek.metrics import count_invocations, measure_latency
-from sneakpeek.models import Scraper, ScraperJob, ScraperJobPriority, ScraperSchedule
-from sneakpeek.queue import Queue, QueueABC
-from sneakpeek.scraper_handler import ScraperHandler
-from sneakpeek.storage.base import ScraperJobsStorage, ScrapersStorage
+from sneakpeek.queue.model import (
+    EnqueueTaskRequest,
+    QueueABC,
+    Task,
+    TaskHasActiveRunError,
+    TaskPriority,
+)
+from sneakpeek.scheduler.models import TaskSchedule
+from sneakpeek.scraper.models import (
+    Scraper,
+    ScraperHandler,
+    ScraperNotFoundError,
+    ScraperStorageABC,
+)
 
 
 class Priority(BaseModel):
@@ -40,9 +49,8 @@ def metrics(request: Request) -> Response:  # pragma: no cover
 
 
 def get_api_entrypoint(
-    scrapers_storage: ScrapersStorage,
-    jobs_storage: ScraperJobsStorage,
-    queue: Queue,
+    scraper_storage: ScraperStorageABC,
+    queue: QueueABC,
     handlers: list[ScraperHandler],
 ) -> jsonrpc.Entrypoint:  # pragma: no cover
     """
@@ -59,57 +67,49 @@ def get_api_entrypoint(
     entrypoint = jsonrpc.Entrypoint("/api/v1/jsonrpc")
 
     @entrypoint.method()
-    async def search_scrapers(
-        name_filter: str | None = Body(...),
-        max_items: int | None = Body(...),
-        last_id: int | None = Body(...),
-    ) -> list[Scraper]:
-        return await scrapers_storage.search_scrapers(name_filter, max_items, last_id)
-
-    @entrypoint.method()
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def get_scrapers() -> list[Scraper]:
-        return await scrapers_storage.get_scrapers()
+        return await scraper_storage.get_scrapers()
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def get_scraper(id: int = Body(...)) -> Scraper:
-        return await scrapers_storage.get_scraper(id)
+        return await scraper_storage.get_scraper(id)
 
     @entrypoint.method()
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def create_scraper(scraper: Scraper = Body(...)) -> Scraper:
-        return await scrapers_storage.create_scraper(scraper)
+        return await scraper_storage.create_scraper(scraper)
 
-    @entrypoint.method(errors=[ScraperNotFoundError, ScraperHasActiveRunError])
+    @entrypoint.method(errors=[ScraperNotFoundError, TaskHasActiveRunError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def enqueue_scraper(
         scraper_id: int = Body(...),
-        priority: ScraperJobPriority = Body(...),
-    ) -> ScraperJob:
-        return await queue.enqueue(scraper_id, priority)
+        priority: TaskPriority = Body(...),
+    ) -> Task:
+        return await queue.enqueue(EnqueueTaskRequest(id=scraper_id, priority=priority))
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def update_scraper(scraper: Scraper = Body(...)) -> Scraper:
-        return await scrapers_storage.update_scraper(scraper)
+        return await scraper_storage.update_scraper(scraper)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def delete_scraper(id: int = Body(...)) -> Scraper:
-        return await scrapers_storage.delete_scraper(id)
+        return await scraper_storage.delete_scraper(id)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
-    async def get_scraper_jobs(scraper_id: int = Body(...)) -> list[ScraperJob]:
-        return await jobs_storage.get_scraper_jobs(scraper_id)
+    async def get_task_instances(task_name: str = Body(...)) -> list[Task]:
+        return await queue.get_task_instances(task_name)
 
     @entrypoint.method()
     @count_invocations(subsystem="api")
@@ -121,7 +121,7 @@ def get_api_entrypoint(
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def get_schedules() -> list[str]:
-        return [schedule.value for schedule in ScraperSchedule]
+        return [schedule.value for schedule in TaskSchedule]
 
     @entrypoint.method()
     @count_invocations(subsystem="api")
@@ -129,19 +129,18 @@ def get_api_entrypoint(
     async def get_priorities() -> list[Priority]:
         return [
             Priority(name=priority.name, value=priority.value)
-            for priority in ScraperJobPriority
+            for priority in TaskPriority
         ]
 
     @entrypoint.method()
     async def is_read_only() -> bool:
-        return await scrapers_storage.is_read_only()
+        return await scraper_storage.is_read_only()
 
     return entrypoint
 
 
 def create_api(
-    scrapers_storage: ScrapersStorage,
-    jobs_storage: ScraperJobsStorage,
+    scraper_storage: ScraperStorageABC,
     queue: QueueABC,
     handlers: list[ScraperHandler],
 ) -> jsonrpc.API:  # pragma: no cover
@@ -162,8 +161,7 @@ def create_api(
     )
     app.bind_entrypoint(
         get_api_entrypoint(
-            scrapers_storage,
-            jobs_storage,
+            scraper_storage,
             queue,
             handlers,
         )
