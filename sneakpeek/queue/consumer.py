@@ -65,7 +65,7 @@ class Consumer:
             (datetime.utcnow() - task.created_at).total_seconds()
         )
         handler_task: asyncio.Task | None = None
-        self.logger.info(f"Executing scraper job id={task.id}")
+        self.logger.info(f"Executing task id={task.id}")
         try:
             task.started_at = datetime.utcnow()
             task.status = TaskStatus.STARTED
@@ -86,6 +86,7 @@ class Consumer:
             task.finished_at = datetime.utcnow()
             task.status = TaskStatus.SUCCEEDED
             task.result = result
+            self.logger.info(f"Successfully executed task id={task.id}")
         except TaskPingFinishedError:
             if handler_task and not handler_task.done():
                 handler_task.cancel()

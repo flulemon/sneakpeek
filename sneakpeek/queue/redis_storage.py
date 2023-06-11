@@ -63,7 +63,11 @@ class RedisQueueStorage(QueueStorageABC):
     @override
     async def get_task_instances(self, task_name: str) -> list[Task]:
         task_keys = await self._redis.smembers(self._get_task_name_key(task_name))
-        return [Task.parse_raw(task) for task in await self._redis.mget(task_keys)]
+        return sorted(
+            [Task.parse_raw(task) for task in await self._redis.mget(task_keys)],
+            key=lambda x: x.id,
+            reverse=True,
+        )
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")

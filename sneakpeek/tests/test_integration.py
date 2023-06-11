@@ -158,15 +158,13 @@ async def _enqueue_task_by_name(
     server: SneakpeekServer,
     priority: TaskPriority = TaskPriority.NORMAL,
 ) -> None:
-    tasks = [s for s in await scraper_storage.get_periodic_tasks() if s.name == name]
-    assert tasks, f"Couldn't find a scraper '{name}'"
-    task = tasks[0]
+    scraper = await _get_scraper_by_name(name, scraper_storage)
     return await server.consumer.queue.enqueue(
         EnqueueTaskRequest(
-            task_name=task.name,
+            task_name=scraper.id,
             task_handler=SCRAPER_PERIODIC_TASK_HANDLER_NAME,
             priority=priority,
-            payload=task.payload,
+            payload="",
         )
     )
 
@@ -176,12 +174,13 @@ async def test_scraper_schedules_and_completes(
     server_with_scheduler: SneakpeekServer,
     storages: Storages,
 ):
-    _, queue_storage, _ = storages
+    scraper_storage, queue_storage, _ = storages
     try:
         server_with_scheduler.serve(blocking=False)
         with patch("sneakpeek.scraper.context.ScraperContext.get") as mocked_request:
             await asyncio.sleep(MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN)
-            tasks = await queue_storage.get_task_instances(SCRAPER_1)
+            scraper = await _get_scraper_by_name(SCRAPER_1, scraper_storage)
+            tasks = await queue_storage.get_task_instances(scraper.id)
             assert len(tasks) > 0, "Expected scraper to be run at least once"
             successful_tasks = [
                 run for run in tasks if run.status == TaskStatus.SUCCEEDED and run
@@ -210,7 +209,8 @@ async def test_scraper_completes_on_request(
                 SCRAPER_1, scraper_storage, server_with_worker_only
             )
             await asyncio.sleep(MIN_SECONDS_TO_EXECUTE_RUN)
-            tasks = await queue_storage.get_task_instances(SCRAPER_1)
+            scraper = await _get_scraper_by_name(SCRAPER_1, scraper_storage)
+            tasks = await queue_storage.get_task_instances(scraper.id)
             assert len(tasks) == 1, "Expected scraper to be run once"
             assert (
                 tasks[0].status == TaskStatus.SUCCEEDED
@@ -269,7 +269,7 @@ async def test_scraper_job_updates(
         deadline = started + timeout
         while True:
             try:
-                tasks = await queue_storage.get_task_instances(SCRAPER_1)
+                tasks = await queue_storage.get_task_instances(scraper.id)
                 successful_tasks = [
                     j
                     for j in tasks
@@ -292,7 +292,7 @@ async def test_scraper_job_updates(
         started = datetime.utcnow()
         deadline = started + timeout
         while datetime.utcnow() < deadline:
-            tasks = await queue_storage.get_task_instances(SCRAPER_1)
+            tasks = await queue_storage.get_task_instances(scraper.id)
             successful_tasks = [
                 j
                 for j in tasks

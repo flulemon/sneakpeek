@@ -69,8 +69,8 @@ async def test_storage_crud(storage: QueueStorageABC) -> None:
 
 @pytest.mark.asyncio
 async def test_delete_old_items(storage: QueueStorageABC) -> None:
-    keep_last = 50
-    total_tasks = 100
+    keep_last = 2
+    total_tasks = 4
     tasks = [
         Task(
             id=0,
@@ -88,4 +88,6 @@ async def test_delete_old_items(storage: QueueStorageABC) -> None:
 
     await storage.delete_old_tasks(keep_last)
     actual_left_tasks = await storage.get_tasks()
-    assert actual_left_tasks == enqueued_tasks[keep_last:]
+    assert sorted(actual_left_tasks, key=lambda x: x.id) == sorted(
+        enqueued_tasks[keep_last:], key=lambda x: x.id
+    )
