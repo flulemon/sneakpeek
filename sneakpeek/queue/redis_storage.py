@@ -56,7 +56,7 @@ class RedisQueueStorage(QueueStorageABC):
             tasks += await self.get_task_instances(
                 self._get_task_name_from_key(key.decode())
             )
-        return sorted(tasks, key=lambda x: x.id)
+        return sorted(tasks, key=lambda x: x.id, reverse=True)
 
     @count_invocations(subsystem="storage")
     @measure_latency(subsystem="storage")

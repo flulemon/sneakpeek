@@ -73,7 +73,7 @@ def configure_logging(level: int = logging.INFO):
     handler = logging.StreamHandler()
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s][%(levelname)s][%(name)s:%(lineno)d][%(scraper_job_human_name)s] %(message)s"
+            "%(asctime)s][%(levelname)s][%(name)s:%(lineno)d]%(task_handler)s:%(task_name)s:%(task_id)s - %(message)s"
         )
     )
     handler.addFilter(TaskContextInjectingFilter())

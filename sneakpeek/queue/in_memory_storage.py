@@ -47,6 +47,7 @@ class InMemoryQueueStorage(QueueStorageABC):
                 for task_id in self._tasks.get(task_name, [])
             ],
             key=lambda x: x.id,
+            reverse=True,
         )
 
     @count_invocations(subsystem="storage")

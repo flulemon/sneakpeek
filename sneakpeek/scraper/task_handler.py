@@ -5,7 +5,6 @@ from sneakpeek.scraper.models import (
     ScraperHandler,
     ScraperRunnerABC,
     ScraperStorageABC,
-    ScraperTaskPayload,
     UnknownScraperHandlerError,
 )
 
@@ -25,8 +24,7 @@ class ScraperTaskHandler(TaskHandlerABC):
         return SCRAPER_PERIODIC_TASK_HANDLER_NAME
 
     async def process(self, task: Task) -> str:
-        payload = ScraperTaskPayload.parse_raw(task.payload)
-        scraper = await self.storage.get_scraper(payload.id)
+        scraper = await self.storage.get_scraper(task.task_name)
         handler = self._get_handler(scraper)
         return await self.runner.run(handler, scraper)
 

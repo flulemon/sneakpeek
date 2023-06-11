@@ -1,12 +1,16 @@
 import logging
+from uuid import uuid4
 
+from sneakpeek.logging import configure_logging
 from sneakpeek.metrics import count_invocations
+from sneakpeek.scheduler.models import TaskSchedule
 from sneakpeek.scraper.context import ScraperContext
+from sneakpeek.scraper.in_memory_storage import InMemoryScraperStorage
 from sneakpeek.scraper.models import (
     Middleware,
     Scraper,
+    ScraperConfig,
     ScraperHandler,
-    ScraperId,
     ScraperRunnerABC,
     ScraperStorageABC,
 )
@@ -31,6 +35,28 @@ class ScraperRunner(ScraperRunnerABC):
         self.scraper_storage = scraper_storage
         self.middlewares = middlewares
 
+    @staticmethod
+    async def debug_handler(
+        handler: ScraperHandler,
+        config: ScraperConfig | None = None,
+        state: str | None = None,
+        middlewares: list[Middleware] | None = None,
+        log_level: int = logging.DEBUG,
+    ):
+        configure_logging(log_level)
+        scraper = Scraper(
+            id=str(uuid4()),
+            name="test_handler",
+            handler=handler.name,
+            schedule=TaskSchedule.INACTIVE,
+            config=config,
+            state=state,
+        )
+        return await ScraperRunner(
+            InMemoryScraperStorage([scraper]),
+            middlewares=middlewares,
+        ).run(handler, scraper)
+
     @count_invocations(subsystem="scraper_runner")
     async def run(self, handler: ScraperHandler, scraper: Scraper) -> str:
         self.logger.info(f"Running scraper {scraper.handler}::{scraper.name}")
@@ -40,8 +66,7 @@ class ScraperRunner(ScraperRunnerABC):
                 f"Provided handler's name ({handler.name}) doesn't match scraper handler name ({scraper.handler})"
             )
 
-        async def _update_scraper_state(scraper_id: ScraperId, state: str) -> Scraper:
-            scraper = await self._scrapers_storage.get_scraper(scraper_id)
+        async def _update_scraper_state(state: str) -> Scraper:
             scraper.state = state
             return await self._scrapers_storage.update_scraper(scraper)
 

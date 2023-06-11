@@ -24,8 +24,11 @@ from sneakpeek.queue.model import (
 )
 from sneakpeek.scheduler.models import TaskSchedule
 from sneakpeek.scraper.models import (
+    SCRAPER_PERIODIC_TASK_HANDLER_NAME,
+    CreateScraperRequest,
     Scraper,
     ScraperHandler,
+    ScraperId,
     ScraperNotFoundError,
     ScraperStorageABC,
 )
@@ -75,23 +78,30 @@ def get_api_entrypoint(
     @entrypoint.method(errors=[ScraperNotFoundError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
-    async def get_scraper(id: int = Body(...)) -> Scraper:
+    async def get_scraper(id: ScraperId = Body(...)) -> Scraper:
         return await scraper_storage.get_scraper(id)
 
     @entrypoint.method()
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
-    async def create_scraper(scraper: Scraper = Body(...)) -> Scraper:
+    async def create_scraper(scraper: CreateScraperRequest = Body(...)) -> Scraper:
         return await scraper_storage.create_scraper(scraper)
 
     @entrypoint.method(errors=[ScraperNotFoundError, TaskHasActiveRunError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
     async def enqueue_scraper(
-        scraper_id: int = Body(...),
+        scraper_id: ScraperId = Body(...),
         priority: TaskPriority = Body(...),
     ) -> Task:
-        return await queue.enqueue(EnqueueTaskRequest(id=scraper_id, priority=priority))
+        return await queue.enqueue(
+            EnqueueTaskRequest(
+                task_name=scraper_id,
+                task_handler=SCRAPER_PERIODIC_TASK_HANDLER_NAME,
+                priority=priority,
+                payload="",
+            )
+        )
 
     @entrypoint.method(errors=[ScraperNotFoundError])
     @count_invocations(subsystem="api")
@@ -102,7 +112,7 @@ def get_api_entrypoint(
     @entrypoint.method(errors=[ScraperNotFoundError])
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
-    async def delete_scraper(id: int = Body(...)) -> Scraper:
+    async def delete_scraper(id: ScraperId = Body(...)) -> Scraper:
         return await scraper_storage.delete_scraper(id)
 
     @entrypoint.method(errors=[ScraperNotFoundError])
@@ -134,7 +144,7 @@ def get_api_entrypoint(
 
     @entrypoint.method()
     async def is_read_only() -> bool:
-        return await scraper_storage.is_read_only()
+        return scraper_storage.is_read_only()
 
     return entrypoint
 

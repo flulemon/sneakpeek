@@ -73,12 +73,10 @@ class InMemoryScraperStorage(ScraperStorageABC):
 
     @override
     async def get_scraper(self, id: ScraperId) -> Scraper:
-        async with self.lock:
-            if id not in self.scrapers:
-                raise ScraperNotFoundError()
-            return self.scrapers[id]
+        if id not in self.scrapers:
+            raise ScraperNotFoundError()
+        return self.scrapers[id]
 
     @override
     async def get_scrapers(self) -> list[Scraper]:
-        async with self.lock:
-            return list(self.scrapers.values())
+        return list(self.scrapers.values())

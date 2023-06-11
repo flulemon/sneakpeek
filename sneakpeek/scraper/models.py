@@ -48,12 +48,6 @@ class Scraper(BaseModel):
     timeout: timedelta | None = None
 
 
-class ScraperTaskPayload(BaseModel):
-    """Scraper periodic task metadata"""
-
-    id: ScraperId  #: ID of scraper to execute
-
-
 class ScraperNotFoundError(jsonrpc.BaseError):
     CODE = 5000
     MESSAGE = "Scraper not found"
@@ -109,13 +103,13 @@ class ScraperStorageABC(PeriodicTasksStorageABC):
     def _convert_scraper_to_periodic_task(self, scraper: Scraper) -> PeriodicTask:
         return PeriodicTask(
             id=scraper.id,
-            name=scraper.name,
+            name=scraper.id,
             handler=SCRAPER_PERIODIC_TASK_HANDLER_NAME,
             priority=scraper.priority,
             schedule=scraper.schedule,
             schedule_crontab=scraper.schedule_crontab,
             timeout=timedelta(seconds=scraper.timeout) if scraper.timeout else None,
-            payload=ScraperTaskPayload(id=scraper.id).json(),
+            payload="",
         )
 
     @override
