@@ -3,14 +3,15 @@ from typing import Any
 from aiohttp import BasicAuth
 from fake_useragent import UserAgent
 from pydantic import BaseModel
+from typing_extensions import override
 from yarl import URL
 
-from sneakpeek.plugins.utils import parse_config_from_obj
-from sneakpeek.scraper_context import BeforeRequestPlugin, Request
+from sneakpeek.middleware.base import BaseMiddleware, parse_config_from_obj
+from sneakpeek.scraper.models import Request
 
 
-class ProxyPluginConfig(BaseModel):
-    """Proxy plugin config"""
+class ProxyMiddlewareConfig(BaseModel):
+    """Proxy middleware config"""
 
     proxy: str | URL | None = None  #: Proxy URL
     proxy_auth: BasicAuth | None = None  #: Proxy authentication info to use
@@ -19,11 +20,11 @@ class ProxyPluginConfig(BaseModel):
         arbitrary_types_allowed = True
 
 
-class ProxyPlugin(BeforeRequestPlugin):
-    """Proxy plugin automatically sets proxy arguments for all HTTP requests."""
+class ProxyMiddleware(BaseMiddleware):
+    """Proxy middleware automatically sets proxy arguments for all HTTP requests."""
 
-    def __init__(self, default_config: ProxyPluginConfig | None = None) -> None:
-        self._default_config = default_config or ProxyPluginConfig()
+    def __init__(self, default_config: ProxyMiddlewareConfig | None = None) -> None:
+        self._default_config = default_config or ProxyMiddlewareConfig()
         self._user_agents = UserAgent(
             use_external_data=self._default_config.use_external_data,
             browsers=self._default_config.browsers,
@@ -33,7 +34,8 @@ class ProxyPlugin(BeforeRequestPlugin):
     def name(self) -> str:
         return "proxy"
 
-    async def before_request(
+    @override
+    async def on_request(
         self,
         request: Request,
         config: Any | None,
@@ -41,7 +43,7 @@ class ProxyPlugin(BeforeRequestPlugin):
         config = parse_config_from_obj(
             config,
             self.name,
-            ProxyPluginConfig,
+            ProxyMiddlewareConfig,
             self._default_config,
         )
         if not request.kwargs:

@@ -10,9 +10,10 @@ from urllib.robotparser import RobotFileParser
 import aiohttp
 from cachetools import TTLCache
 from pydantic import BaseModel
+from typing_extensions import override
 
-from sneakpeek.plugins.utils import parse_config_from_obj
-from sneakpeek.scraper_context import BeforeRequestPlugin, Request
+from sneakpeek.middleware.base import BaseMiddleware, parse_config_from_obj
+from sneakpeek.scraper.models import Request
 
 
 class RobotsTxtViolationException(Exception):
@@ -28,17 +29,17 @@ class RobotsTxtViolationStrategy(Enum):
     THROW = auto()  #: Raise an exception on vioalation
 
 
-class RobotsTxtPluginConfig(BaseModel):
-    """robots.txt plugin configuration"""
+class RobotsTxtMiddlewareConfig(BaseModel):
+    """robots.txt middleware configuration"""
 
     violation_strategy: RobotsTxtViolationStrategy = RobotsTxtViolationStrategy.LOG
 
 
-class RobotsTxtPlugin(BeforeRequestPlugin):
-    """Robots.txt plugin can log and optionally block requests if they are disallowed by website robots.txt."""
+class RobotsTxtMiddleware(BaseMiddleware):
+    """Robots.txt middleware can log and optionally block requests if they are disallowed by website robots.txt."""
 
-    def __init__(self, default_config: RobotsTxtPluginConfig | None = None) -> None:
-        self._default_config = default_config or RobotsTxtPluginConfig()
+    def __init__(self, default_config: RobotsTxtMiddlewareConfig | None = None) -> None:
+        self._default_config = default_config or RobotsTxtMiddlewareConfig()
         self._logger = logging.getLogger(__name__)
         self._cache = TTLCache(
             maxsize=sys.maxsize,
@@ -81,7 +82,8 @@ class RobotsTxtPlugin(BeforeRequestPlugin):
                     )
         return None
 
-    async def before_request(
+    @override
+    async def on_request(
         self,
         request: Request,
         config: Any | None,
@@ -89,7 +91,7 @@ class RobotsTxtPlugin(BeforeRequestPlugin):
         config = parse_config_from_obj(
             config,
             self.name,
-            RobotsTxtPluginConfig,
+            RobotsTxtMiddlewareConfig,
             self._default_config,
         )
         host = self._extract_host(request.url)

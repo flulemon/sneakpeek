@@ -3,32 +3,34 @@ from typing import Any
 
 import aiohttp
 from pydantic import BaseModel
+from typing_extensions import override
 
-from sneakpeek.plugins.utils import parse_config_from_obj
-from sneakpeek.scraper_context import AfterResponsePlugin, BeforeRequestPlugin, Request
+from sneakpeek.middleware.base import parse_config_from_obj
+from sneakpeek.scraper.models import Middleware, Request
 
 
-class RequestsLoggingPluginConfig(BaseModel):
-    """Requests logging plugin config"""
+class RequestsLoggingMiddlewareConfig(BaseModel):
+    """Requests logging middleware config"""
 
     log_request: bool = True  #: Whether to log request being made
     log_response: bool = True  #: Whether to log response being made
 
 
-class RequestsLoggingPlugin(BeforeRequestPlugin, AfterResponsePlugin):
+class RequestsLoggingMiddleware(Middleware):
     """Requests logging middleware logs all requests being made and received responses."""
 
     def __init__(
-        self, default_config: RequestsLoggingPluginConfig | None = None
+        self, default_config: RequestsLoggingMiddlewareConfig | None = None
     ) -> None:
-        self._default_config = default_config or RequestsLoggingPluginConfig()
+        self._default_config = default_config or RequestsLoggingMiddlewareConfig()
         self._logger = logging.getLogger(__name__)
 
     @property
     def name(self) -> str:
         return "requests_logging"
 
-    async def before_request(
+    @override
+    async def on_request(
         self,
         request: Request,
         config: Any | None,
@@ -36,7 +38,7 @@ class RequestsLoggingPlugin(BeforeRequestPlugin, AfterResponsePlugin):
         config = parse_config_from_obj(
             config,
             self.name,
-            RequestsLoggingPluginConfig,
+            RequestsLoggingMiddlewareConfig,
             self._default_config,
         )
         if config.log_request:
@@ -49,7 +51,8 @@ class RequestsLoggingPlugin(BeforeRequestPlugin, AfterResponsePlugin):
             )
         return request
 
-    async def after_response(
+    @override
+    async def on_response(
         self,
         request: Request,
         response: aiohttp.ClientResponse,
@@ -58,7 +61,7 @@ class RequestsLoggingPlugin(BeforeRequestPlugin, AfterResponsePlugin):
         config = parse_config_from_obj(
             config,
             self.name,
-            RequestsLoggingPluginConfig,
+            RequestsLoggingMiddlewareConfig,
             self._default_config,
         )
         if config.log_response:

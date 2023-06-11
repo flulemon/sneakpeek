@@ -10,8 +10,8 @@ from urllib.parse import urlparse
 from cachetools.func import ttl_cache
 from pydantic import BaseModel, validator
 
-from sneakpeek.plugins.utils import parse_config_from_obj
-from sneakpeek.scraper_context import BeforeRequestPlugin, Request
+from sneakpeek.middleware.base import BaseMiddleware, parse_config_from_obj
+from sneakpeek.scraper.models import Request
 
 DEFAULT_BUCKET_TIME_WINDOW = timedelta(minutes=1)
 
@@ -61,8 +61,8 @@ class RateLimitedStrategy(Enum):
     WAIT = auto()  #: Wait until request is no longer rate limited
 
 
-class RateLimiterPluginConfig(BaseModel):
-    """Rate limiter plugin configuration"""
+class RateLimiterMiddlewareConfig(BaseModel):
+    """Rate limiter middleware configuration"""
 
     #: Maximum number of allowed requests per host within time window
     max_requests: int = 60
@@ -89,15 +89,17 @@ class RateLimiterPluginConfig(BaseModel):
         )
 
 
-class RateLimiterPlugin(BeforeRequestPlugin):
+class RateLimiterMiddleware(BaseMiddleware):
     """
     Rate limiter implements `leaky bucket algorithm <https://en.wikipedia.org/wiki/Leaky_bucket>`_
     to limit number of requests made to the hosts. If the request is rate limited it can either
     raise an exception or wait until the request won't be limited anymore.
     """
 
-    def __init__(self, default_config: RateLimiterPluginConfig | None = None) -> None:
-        self._default_config = default_config or RateLimiterPluginConfig()
+    def __init__(
+        self, default_config: RateLimiterMiddlewareConfig | None = None
+    ) -> None:
+        self._default_config = default_config or RateLimiterMiddlewareConfig()
         self._logger = logging.getLogger(__name__)
 
     @property
@@ -108,7 +110,9 @@ class RateLimiterPlugin(BeforeRequestPlugin):
         return urlparse(url).hostname
 
     @ttl_cache(maxsize=None, ttl=timedelta(minutes=5).total_seconds())
-    def _get_bucket(self, key: str, config: RateLimiterPluginConfig) -> _LeakyBucket:
+    def _get_bucket(
+        self, key: str, config: RateLimiterMiddlewareConfig
+    ) -> _LeakyBucket:
         return _LeakyBucket(
             size=config.max_requests,
             time_window=config.time_window,
@@ -117,7 +121,7 @@ class RateLimiterPlugin(BeforeRequestPlugin):
     async def _wait_for_admission(
         self,
         url: str,
-        config: RateLimiterPluginConfig,
+        config: RateLimiterMiddlewareConfig,
     ) -> None:
         key = self._extract_key(url)
         bucket = self._get_bucket(key, config)
@@ -139,7 +143,7 @@ class RateLimiterPlugin(BeforeRequestPlugin):
             attempt_delay += rate_limited_delay_jitter()
             await asyncio.sleep(attempt_delay.total_seconds())
 
-    async def before_request(
+    async def on_request(
         self,
         request: Request,
         config: Any | None,
@@ -147,7 +151,7 @@ class RateLimiterPlugin(BeforeRequestPlugin):
         config = parse_config_from_obj(
             config,
             self.name,
-            RateLimiterPluginConfig,
+            RateLimiterMiddlewareConfig,
             self._default_config,
         )
         await self._wait_for_admission(request.url, config)

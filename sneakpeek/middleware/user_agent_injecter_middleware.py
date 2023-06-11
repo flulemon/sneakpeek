@@ -2,13 +2,14 @@ from typing import Any
 
 from fake_useragent import UserAgent
 from pydantic import BaseModel
+from typing_extensions import override
 
-from sneakpeek.plugins.utils import parse_config_from_obj
-from sneakpeek.scraper_context import BeforeRequestPlugin, Request
+from sneakpeek.middleware.base import BaseMiddleware, parse_config_from_obj
+from sneakpeek.scraper.models import Request
 
 
-class UserAgentInjecterPluginConfig(BaseModel):
-    """Plugin configuration"""
+class UserAgentInjecterMiddlewareConfig(BaseModel):
+    """Middleware configuration"""
 
     #: Whether to use external data as a fallback
     use_external_data: bool = True
@@ -17,16 +18,16 @@ class UserAgentInjecterPluginConfig(BaseModel):
     browsers: list[str] = ["chrome", "edge", "firefox", "safari", "opera"]
 
 
-class UserAgentInjecterPlugin(BeforeRequestPlugin):
+class UserAgentInjecterMiddleware(BaseMiddleware):
     """
-    This plugin automatically adds ``User-Agent`` header if it's not present.
+    This middleware automatically adds ``User-Agent`` header if it's not present.
     It uses `fake-useragent <https://pypi.org/project/fake-useragent/>`_ in order to generate fake real world user agents.
     """
 
     def __init__(
-        self, default_config: UserAgentInjecterPluginConfig | None = None
+        self, default_config: UserAgentInjecterMiddlewareConfig | None = None
     ) -> None:
-        self._default_config = default_config or UserAgentInjecterPluginConfig()
+        self._default_config = default_config or UserAgentInjecterMiddlewareConfig()
         self._user_agents = UserAgent(
             use_external_data=self._default_config.use_external_data,
             browsers=self._default_config.browsers,
@@ -36,7 +37,8 @@ class UserAgentInjecterPlugin(BeforeRequestPlugin):
     def name(self) -> str:
         return "user_agent_injecter"
 
-    async def before_request(
+    @override
+    async def on_request(
         self,
         request: Request,
         config: Any | None,
@@ -44,7 +46,7 @@ class UserAgentInjecterPlugin(BeforeRequestPlugin):
         config = parse_config_from_obj(
             config,
             self.name,
-            UserAgentInjecterPluginConfig,
+            UserAgentInjecterMiddlewareConfig,
             self._default_config,
         )
         if (request.headers or {}).get("User-Agent"):
