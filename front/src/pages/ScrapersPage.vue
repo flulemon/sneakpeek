@@ -67,7 +67,7 @@ export default {
         { name: 'id', label: 'ID', field: 'id', align: 'left' },
         { name: 'name', label: 'Name', field: row => row, align: 'left'},
         { name: 'schedule', label: 'Schedule', field: 'schedule', align: 'center' },
-        { name: 'priority', label: 'Priority', field: 'schedule_priority', align: 'center' },
+        { name: 'priority', label: 'Priority', field: 'priority', align: 'center' },
         { name: 'actions', label: 'Actions', field: row => row, align: 'right' },
       ],
       rows: [],

@@ -38,7 +38,7 @@ export function getScraper(id) {
 }
 
 export function getScraperJobs(id) {
-  return rpc("get_scraper_jobs", {scraper_id: id});
+  return rpc("get_task_instances", {task_name: id});
 }
 
 export function getScraperHandlers() {
@@ -56,14 +56,13 @@ export function getPriorities() {
 export function enqueueScraper(id) {
   return rpc("enqueue_scraper", {scraper_id: id, priority: 0});
 }
+export function createScraper(scraper) {
+  return rpc("create_scraper", {scraper: scraper});
+}
 
-export function createOrUpdateScraper(scraper) {
-  let method = "update_scraper";
-  if (scraper.id == null) {
-    scraper.id = -1;
-    method = "create_scraper";
-  }
-  return rpc(method, {scraper: scraper});
+
+export function updateScraper(scraper) {
+  return rpc("update_scraper", {scraper: scraper});
 }
 
 export function deleteScraper(id) {
