@@ -34,7 +34,7 @@ test: $(PY_INSTALL_STAMP) ##Run tests
 
 .PHONE: coverage
 coverage: $(PY_INSTALL_STAMP) ##Run tests
-	$(POETRY) run pytest --cov=sneakpeek tests --cov-fail-under=85 --cov-report term-missing --cov-report html --cov-report xml
+	$(POETRY) run pytest --cov=sneakpeek sneakpeek --cov-fail-under=85 --cov-report term-missing --cov-report html --cov-report xml
 
 build-ui: ##Build frontend
 	$(YARN) --cwd $(ROOT_DIR)/front/ quasar build
