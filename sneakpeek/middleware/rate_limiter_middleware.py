@@ -11,7 +11,7 @@ from cachetools.func import ttl_cache
 from pydantic import BaseModel, validator
 
 from sneakpeek.middleware.base import BaseMiddleware, parse_config_from_obj
-from sneakpeek.scraper.models import Request
+from sneakpeek.scraper.model import Request
 
 DEFAULT_BUCKET_TIME_WINDOW = timedelta(minutes=1)
 

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from redis.asyncio import Redis
 
 from sneakpeek.metrics import count_invocations, measure_latency
-from sneakpeek.scheduler.models import Lease, LeaseStorageABC
+from sneakpeek.scheduler.model import Lease, LeaseStorageABC
 
 
 class RedisLeaseStorage(LeaseStorageABC):

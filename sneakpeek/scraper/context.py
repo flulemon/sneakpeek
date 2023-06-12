@@ -10,7 +10,7 @@ from uuid import uuid4
 import aiohttp
 from typing_extensions import override
 
-from sneakpeek.scraper.models import (
+from sneakpeek.scraper.model import (
     HttpHeaders,
     HttpMethod,
     Middleware,

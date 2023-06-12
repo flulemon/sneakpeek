@@ -3,10 +3,10 @@ from uuid import uuid4
 
 from sneakpeek.logging import configure_logging
 from sneakpeek.metrics import count_invocations
-from sneakpeek.scheduler.models import TaskSchedule
+from sneakpeek.scheduler.model import TaskSchedule
 from sneakpeek.scraper.context import ScraperContext
 from sneakpeek.scraper.in_memory_storage import InMemoryScraperStorage
-from sneakpeek.scraper.models import (
+from sneakpeek.scraper.model import (
     Middleware,
     Scraper,
     ScraperConfig,

@@ -1,5 +1,5 @@
 from sneakpeek.queue.model import Task, TaskHandlerABC
-from sneakpeek.scraper.models import (
+from sneakpeek.scraper.model import (
     SCRAPER_PERIODIC_TASK_HANDLER_NAME,
     Scraper,
     ScraperHandler,

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from sneakpeek.middleware.base import parse_config_from_obj
-from sneakpeek.scraper.models import Middleware, Request
+from sneakpeek.scraper.model import Middleware, Request
 
 
 class RequestsLoggingMiddlewareConfig(BaseModel):

@@ -6,7 +6,7 @@ from aiohttp import ClientResponse
 from pydantic import BaseModel
 from typing_extensions import override
 
-from sneakpeek.scraper.models import Middleware, MiddlewareConfig, Request
+from sneakpeek.scraper.model import Middleware, MiddlewareConfig, Request
 
 logger = logging.getLogger(__name__)
 

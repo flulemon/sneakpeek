@@ -1,7 +1,7 @@
 import json
 
 from sneakpeek.queue.model import QueueABC, Task, TaskHandlerABC, TaskPriority
-from sneakpeek.scheduler.models import (
+from sneakpeek.scheduler.model import (
     PeriodicTask,
     StaticPeriodicTasksStorage,
     TaskSchedule,

@@ -5,7 +5,7 @@ import pytest
 from fakeredis.aioredis import FakeRedis
 
 from sneakpeek.scheduler.in_memory_lease_storage import InMemoryLeaseStorage
-from sneakpeek.scheduler.models import LeaseStorageABC
+from sneakpeek.scheduler.model import LeaseStorageABC
 from sneakpeek.scheduler.redis_lease_storage import RedisLeaseStorage
 
 NON_EXISTENT_SCRAPER_ID = 10001

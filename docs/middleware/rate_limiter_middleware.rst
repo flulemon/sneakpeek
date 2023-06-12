@@ -6,19 +6,19 @@ Rate limiter implements `leaky bucket algorithm <https://en.wikipedia.org/wiki/L
 to limit number of requests made to the hosts. If the request is rate limited it can either 
 raise an exception or wait until the request won't be limited anymore.
 
-Configuration of the plugin is defined in :py:class:`RateLimiterPluginConfig <sneakpeek.plugins.rate_limiter_plugin.RateLimiterPluginConfig>`.
+Configuration of the middleware is defined in :py:class:`RateLimiterMiddlewareConfig <sneakpeek.middleware.rate_limiter_middleware.RateLimiterMiddlewareConfig>`.
 
-How to configure plugin for the :py:class:`SneakpeekServer <sneakpeek.server.SneakpeekServer>` (will be used globally for all requests):
+How to configure middleware for the :py:class:`SneakpeekServer <sneakpeek.server.SneakpeekServer>` (will be used globally for all requests):
 
 .. code-block:: python3
 
-    from sneakpeek.plugins.rate_limiter_plugin import RateLimiterPlugin, RateLimiterPluginConfig
+    from sneakpeek.middleware.rate_limiter_middleware import RateLimiterMiddleware, RateLimiterMiddlewareConfig
 
     server = SneakpeekServer.create(
         ...
-        plugins=[
-            RateLimiterPlugin(
-                RateLimiterPluginConfig(
+        middleware=[
+            RateLimiterMiddleware(
+                RateLimiterMiddlewareConfig(
                     # maximum number of requests in a given time window
                     max_requests = 60,
                     # wait until request won't be rate limited
@@ -31,18 +31,18 @@ How to configure plugin for the :py:class:`SneakpeekServer <sneakpeek.server.Sne
     )
 
 
-How to override plugin settings for a given scraper:
+How to override middleware settings for a given scraper:
 
 .. code-block:: python3
 
-    from sneakpeek.plugins.rate_limiter_plugin import RateLimiterPluginConfig
+    from sneakpeek.middleware.rate_limiter_middleware import RateLimiterMiddlewareConfig
 
     scraper = Scraper(
         ...
         config=ScraperConfig(
             ...
-            plugins={
-                "rate_limiter": RateLimiterPluginConfig(
+            middleware={
+                "rate_limiter": RateLimiterMiddlewareConfig(
                     # maximum number of requests in a given time window
                     max_requests = 120,
                     # throw RateLimiterException if request is rate limited

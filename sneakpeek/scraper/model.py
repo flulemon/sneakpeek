@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing_extensions import override
 
 from sneakpeek.queue.model import TaskPriority
-from sneakpeek.scheduler.models import (
+from sneakpeek.scheduler.model import (
     PeriodicTask,
     PeriodicTasksStorageABC,
     TaskSchedule,

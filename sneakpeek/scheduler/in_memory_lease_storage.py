@@ -3,7 +3,7 @@ from asyncio import Lock
 from datetime import datetime, timedelta
 
 from sneakpeek.metrics import count_invocations, measure_latency
-from sneakpeek.scheduler.models import Lease, LeaseStorageABC
+from sneakpeek.scheduler.model import Lease, LeaseStorageABC
 
 
 class InMemoryLeaseStorage(LeaseStorageABC):

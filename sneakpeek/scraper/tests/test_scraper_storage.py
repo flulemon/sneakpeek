@@ -3,9 +3,9 @@ from uuid import uuid4
 import pytest
 from fakeredis.aioredis import FakeRedis
 
-from sneakpeek.scheduler.models import TaskSchedule
+from sneakpeek.scheduler.model import TaskSchedule
 from sneakpeek.scraper.in_memory_storage import InMemoryScraperStorage
-from sneakpeek.scraper.models import (
+from sneakpeek.scraper.model import (
     CreateScraperRequest,
     Scraper,
     ScraperConfig,

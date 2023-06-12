@@ -4,7 +4,7 @@ from uuid import uuid4
 from redis.asyncio import Redis
 from typing_extensions import override
 
-from sneakpeek.scraper.models import (
+from sneakpeek.scraper.model import (
     CreateScraperRequest,
     Scraper,
     ScraperId,

@@ -18,7 +18,7 @@ from sneakpeek.queue.model import (
     TaskHasActiveRunError,
     TaskPriority,
 )
-from sneakpeek.scheduler.models import (
+from sneakpeek.scheduler.model import (
     Lease,
     LeaseStorageABC,
     PeriodicTask,

@@ -17,7 +17,7 @@ Table of contents
    local_debugging
    design
    deployment
-   plugins/index
+   middleware/index
    api
 
 Indices

@@ -8,7 +8,7 @@ Add import in the beginning of the file:
 
 .. code-block:: python3
 
-    from sneakpeek.runner import LocalRunner
+    from sneakpeek.scraper.runner import ScraperRunner
 
 
 And add the following lines to the end of the file:
@@ -16,24 +16,31 @@ And add the following lines to the end of the file:
 
 .. code-block:: python3
 
-    if __name__ == "__main__":
-        LocalRunner.run(
+
+    async def main():
+        result = await ScraperRunner.debug_handler(
             DemoScraper(),
-            ScraperConfig(
+            config=ScraperConfig(
                 params=DemoScraperParams(
-                    url="http://google.com",
+                    start_url="https://www.ycombinator.com/",
+                    max_pages=20,
                 ).dict(),
             ),
-            plugins=[
-                RequestsLoggingPlugin(),
+            middlewares=[
+                RequestsLoggingMiddleware(),
             ],
         )
+        logging.info(f"Finished scraper with result: {result}")
 
-For the argument `LocalRunner.run` takes:
+    if __name__ == "__main__":
+        asyncio.run(main())
+
+
+For the argument `ScraperRunner.debug_handler` takes:
 
 1. An instance of your scraper handler
 2. Scraper config
-3. **[Optional]** List of plugins that will be used in the handler (:doc:`see full list of the plugins here </plugins/index>`)
+3. **[Optional]** Middleware that will be used in the handler (:doc:`see full list of the middleware here </middleware/index>`)
 
 Now you can run you handler as an ordinary Python script. Given it's in `demo_scraper.py` file you can use:
 

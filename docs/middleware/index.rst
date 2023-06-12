@@ -1,5 +1,5 @@
 #################
-  Plugins
+  Middleware
 #################
 
 **Sneakpeek** allows you to run arbitrary code before the request and after the response has been recieved.
@@ -11,9 +11,9 @@ There are some plugins that are already implemented:
    :maxdepth: 2
 
 
-   rate_limiter_plugin
-   robots_txt_plugin
-   user_agent_injecter_plugin
-   proxy_plugin
-   requests_logging_plugin
-   new_plugin
+   rate_limiter_middleware
+   robots_txt_middleware
+   user_agent_injecter_middleware
+   proxy_middleware
+   requests_logging_middleware
+   new_middleware

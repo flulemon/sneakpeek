@@ -16,14 +16,14 @@ from sneakpeek.queue.tasks import (
     KillDeadTasksHandler,
     queue_periodic_tasks,
 )
-from sneakpeek.scheduler.models import (
+from sneakpeek.scheduler.model import (
     LeaseStorageABC,
     MultiPeriodicTasksStorage,
     SchedulerABC,
 )
 from sneakpeek.scheduler.scheduler import Scheduler
 from sneakpeek.scraper.dynamic_scraper_handler import DynamicScraperHandler
-from sneakpeek.scraper.models import Middleware, ScraperHandler, ScraperStorageABC
+from sneakpeek.scraper.model import Middleware, ScraperHandler, ScraperStorageABC
 from sneakpeek.scraper.runner import ScraperRunner
 from sneakpeek.scraper.task_handler import ScraperTaskHandler
 

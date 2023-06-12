@@ -8,7 +8,7 @@ from aioresponses import aioresponses
 from typing_extensions import override
 
 from sneakpeek.scraper.context import ScraperContext
-from sneakpeek.scraper.models import (
+from sneakpeek.scraper.model import (
     HttpMethod,
     Middleware,
     MiddlewareConfig,

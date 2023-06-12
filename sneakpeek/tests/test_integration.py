@@ -15,10 +15,10 @@ from sneakpeek.queue.model import (
 )
 from sneakpeek.queue.redis_storage import RedisQueueStorage
 from sneakpeek.scheduler.in_memory_lease_storage import InMemoryLeaseStorage
-from sneakpeek.scheduler.models import LeaseStorageABC, TaskSchedule
+from sneakpeek.scheduler.model import LeaseStorageABC, TaskSchedule
 from sneakpeek.scheduler.redis_lease_storage import RedisLeaseStorage
 from sneakpeek.scraper.in_memory_storage import InMemoryScraperStorage
-from sneakpeek.scraper.models import (
+from sneakpeek.scraper.model import (
     SCRAPER_PERIODIC_TASK_HANDLER_NAME,
     CreateScraperRequest,
     Scraper,

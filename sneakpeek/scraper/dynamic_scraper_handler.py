@@ -5,7 +5,7 @@ from typing import Any, Awaitable, Callable, Mapping
 from pydantic import BaseModel
 from typing_extensions import override
 
-from sneakpeek.scraper.models import ScraperContextABC, ScraperHandler
+from sneakpeek.scraper.model import ScraperContextABC, ScraperHandler
 
 
 class DynamicScraperParams(BaseModel):

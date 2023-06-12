@@ -22,8 +22,8 @@ from sneakpeek.queue.model import (
     TaskHasActiveRunError,
     TaskPriority,
 )
-from sneakpeek.scheduler.models import TaskSchedule
-from sneakpeek.scraper.models import (
+from sneakpeek.scheduler.model import TaskSchedule
+from sneakpeek.scraper.model import (
     SCRAPER_PERIODIC_TASK_HANDLER_NAME,
     CreateScraperRequest,
     Scraper,

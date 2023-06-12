@@ -7,7 +7,7 @@ from typing_extensions import override
 from yarl import URL
 
 from sneakpeek.middleware.base import BaseMiddleware, parse_config_from_obj
-from sneakpeek.scraper.models import Request
+from sneakpeek.scraper.model import Request
 
 
 class ProxyMiddlewareConfig(BaseModel):
