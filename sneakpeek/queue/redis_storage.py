@@ -12,18 +12,17 @@ SCORE_PRIORITY_BIT_OFFSET = 32
 
 class RedisQueueStorage(QueueStorageABC):
     """
-    Redis queue storage.
-    Queue consists of two components:
-    1. Priority queue implemented by sorted set (ZADD and ZPOPMIN)
-    2. Set of key values representing tasks:
-        1. Each key is a task name
-        2. Each value is a set of task instances
+    Redis queue storage. Queue has two components: priority queue
+    implemented by sorted set (ZADD and ZPOPMIN) and key (task name)
+    values (set of task instances) set
     """
 
     def __init__(self, redis: Redis, task_ttl: timedelta = DEFAULT_TASK_TTL) -> None:
         """
+
         Args:
             redis (Redis): Async redis client
+            task_ttl (timedelta): TTL of the task record in the redis. Defaults to 7 days.
         """
         self._redis = redis
         self._queue_set_name = "internal::queue"
