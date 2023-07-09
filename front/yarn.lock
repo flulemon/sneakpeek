@@ -3390,30 +3390,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"monaco-editor@npm:~0.37.1":
-  version: 0.37.1
-  resolution: "monaco-editor@npm:0.37.1"
-  checksum: f2ac123d3044a1386d36ba52bb617ad18fb1c745d515a63258858b41c91bb68b71b57c7e5aff3fc2b3226b22c12ca3ad5b14c117babc85eebcf80317cb10691b
+"monaco-editor@npm:~0.39.0":
+  version: 0.39.0
+  resolution: "monaco-editor@npm:0.39.0"
+  checksum: 6d906c5f07fc6761b93bebee70bc1c461d6bbea493252751f4e2e60f26678faced9261ed9cca21613511695e6d7b75c2f2214b6d53aaa479a7e0b6f2d912f90b
   languageName: node
   linkType: hard
 
-"monaco-languageclient@npm:^6.0.3":
-  version: 6.0.3
-  resolution: "monaco-languageclient@npm:6.0.3"
+"monaco-languageclient@npm:^6.2.0":
+  version: 6.2.0
+  resolution: "monaco-languageclient@npm:6.2.0"
   dependencies:
-    monaco-editor: ~0.37.1
-    vscode: "npm:@codingame/monaco-vscode-api@~1.78.8"
+    monaco-editor: ~0.39.0
+    vscode: "npm:@codingame/monaco-vscode-api@1.79.3"
     vscode-jsonrpc: ~8.1.0
     vscode-languageclient: ~8.1.0
   peerDependencies:
-    monaco-editor: ~0.37.1
+    monaco-editor: ~0.39.0
     vscode: "*"
   peerDependenciesMeta:
     monaco-editor:
       optional: false
     vscode:
       optional: false
-  checksum: 60ba099325fa579dcf46e7c0669800be6d43e8b0e6b0dfb167174c92bc0e91ab27ebb30c4e35cf54f41863ec3eda7993010f3ebaefe2275f2c059b4b2705273a
+  checksum: 906ae42c4d1460ac47f592e850c6e8951a25b244532526117ecc494714195b98da6583d96dab10822ee507d0ba1e4fef4c8660e4526133611c8a140e7c42f76b
   languageName: node
   linkType: hard
 
@@ -4354,7 +4354,7 @@ __metadata:
     json-editor-vue: ^0.10.5
     monaco-editor-vue: ^1.0.10
     monaco-editor-webpack-plugin: ^7.0.1
-    monaco-languageclient: ^6.0.3
+    monaco-languageclient: ^6.2.0
     postcss: ^8.4.14
     prettier: ^2.5.1
     quasar: ^2.6.0
@@ -4808,17 +4808,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vscode@npm:@codingame/monaco-vscode-api@~1.78.8":
-  version: 1.78.8
-  resolution: "@codingame/monaco-vscode-api@npm:1.78.8"
+"vscode@npm:@codingame/monaco-vscode-api@1.79.3":
+  version: 1.79.3
+  resolution: "@codingame/monaco-vscode-api@npm:1.79.3"
   peerDependencies:
-    monaco-editor: 0.37.1
+    monaco-editor: 0.39.0
     vscode-oniguruma: ^1.7.0
     vscode-textmate: ^9.0.0
+    xterm: 5.2.1
+    xterm-addon-canvas: 0.4.0
+    xterm-addon-image: 0.4.1
+    xterm-addon-search: 0.12.0
+    xterm-addon-serialize: 0.10.0
+    xterm-addon-unicode11: 0.5.0
+    xterm-addon-webgl: 0.15.0
     yauzl: ^2.10.0
   bin:
     monaco-treemending: monaco-treemending.js
-  checksum: 84a01cfd0746190a11aadd802960c20963d8fb8e7cd18722076590bb096411476cee869524e39d826398ef38e1ad91aa425ebf07337790baae160cb3dd076f87
+  checksum: d6352538be07bbeab355aeb417ed7b884257f348957113cd526403bdbe0e7a5dc2d82ef2b1c5c4111e8f5faf6335c1349cb5c58cb1289f75a6f66fa5c4632507
   languageName: node
   linkType: hard
 

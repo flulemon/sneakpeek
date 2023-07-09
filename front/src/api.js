@@ -41,6 +41,21 @@ export function getScraperJobs(id) {
   return rpc("get_task_instances", {task_name: id});
 }
 
+export function getTask(id) {
+  return rpc("get_task_instance", {task_id: id});
+}
+
+export function getTaskLogs(id, last_log_line_id, max_lines) {
+  return rpc(
+    "get_task_logs",
+    {
+      task_id: id,
+      last_log_line_id: last_log_line_id,
+      max_lines: max_lines
+    }
+  );
+}
+
 export function getScraperHandlers() {
   return rpc("get_scraper_handlers", {});
 }
@@ -77,4 +92,18 @@ export function isReadOnly() {
       SessionStorage.set("is_storage_read_only", result);
       return result;
     });
+}
+
+export function runEphemeralScraperTask(config, handler, state, priority) {
+  return rpc(
+    "run_ephemeral",
+    {
+      task: {
+        scraper_config: config,
+        scraper_handler: handler,
+        scraper_state: state,
+      },
+      priority: priority,
+    }
+  );
 }

@@ -38,7 +38,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["json-editor-vue", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:0.10.5"],\
             ["monaco-editor-vue", "npm:1.0.10"],\
             ["monaco-editor-webpack-plugin", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:7.0.1"],\
-            ["monaco-languageclient", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.0.3"],\
+            ["monaco-languageclient", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.2.0"],\
             ["postcss", "npm:8.4.21"],\
             ["prettier", "npm:2.8.7"],\
             ["quasar", "npm:2.11.10"],\
@@ -100,34 +100,62 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["@codingame/monaco-vscode-api", [\
-        ["npm:1.78.8", {\
-          "packageLocation": "./.yarn/cache/@codingame-monaco-vscode-api-npm-1.78.8-9c9233570c-84a01cfd07.zip/node_modules/@codingame/monaco-vscode-api/",\
+        ["npm:1.79.3", {\
+          "packageLocation": "./.yarn/cache/@codingame-monaco-vscode-api-npm-1.79.3-8284e9666d-d6352538be.zip/node_modules/@codingame/monaco-vscode-api/",\
           "packageDependencies": [\
-            ["@codingame/monaco-vscode-api", "npm:1.78.8"]\
+            ["@codingame/monaco-vscode-api", "npm:1.79.3"]\
           ],\
           "linkType": "SOFT"\
         }],\
-        ["virtual:0220fe48368b5429df3c3ff585ba91b5bad9720bfd557c997a291ce50c1f1037b0e3786d85bf952a4352f9835f76211d863112a10f9e1a87633b98c49b0156c9#npm:1.78.8", {\
-          "packageLocation": "./.yarn/__virtual__/@codingame-monaco-vscode-api-virtual-17ea3411b3/0/cache/@codingame-monaco-vscode-api-npm-1.78.8-9c9233570c-84a01cfd07.zip/node_modules/@codingame/monaco-vscode-api/",\
+        ["virtual:e455a942ad8d5fdd9b4c17efe7036be42332c62122540d411c9bf1a3caf397b7286aad409c4428994876bb675150aaef54c7ad0326f9a5823a09a56e9f34f472#npm:1.79.3", {\
+          "packageLocation": "./.yarn/__virtual__/@codingame-monaco-vscode-api-virtual-fe8fb936a1/0/cache/@codingame-monaco-vscode-api-npm-1.79.3-8284e9666d-d6352538be.zip/node_modules/@codingame/monaco-vscode-api/",\
           "packageDependencies": [\
-            ["@codingame/monaco-vscode-api", "virtual:0220fe48368b5429df3c3ff585ba91b5bad9720bfd557c997a291ce50c1f1037b0e3786d85bf952a4352f9835f76211d863112a10f9e1a87633b98c49b0156c9#npm:1.78.8"],\
+            ["@codingame/monaco-vscode-api", "virtual:e455a942ad8d5fdd9b4c17efe7036be42332c62122540d411c9bf1a3caf397b7286aad409c4428994876bb675150aaef54c7ad0326f9a5823a09a56e9f34f472#npm:1.79.3"],\
             ["@types/monaco-editor", null],\
             ["@types/vscode-oniguruma", null],\
             ["@types/vscode-textmate", null],\
+            ["@types/xterm", null],\
+            ["@types/xterm-addon-canvas", null],\
+            ["@types/xterm-addon-image", null],\
+            ["@types/xterm-addon-search", null],\
+            ["@types/xterm-addon-serialize", null],\
+            ["@types/xterm-addon-unicode11", null],\
+            ["@types/xterm-addon-webgl", null],\
             ["@types/yauzl", null],\
-            ["monaco-editor", "npm:0.37.1"],\
+            ["monaco-editor", "npm:0.39.0"],\
             ["vscode-oniguruma", null],\
             ["vscode-textmate", null],\
+            ["xterm", null],\
+            ["xterm-addon-canvas", null],\
+            ["xterm-addon-image", null],\
+            ["xterm-addon-search", null],\
+            ["xterm-addon-serialize", null],\
+            ["xterm-addon-unicode11", null],\
+            ["xterm-addon-webgl", null],\
             ["yauzl", null]\
           ],\
           "packagePeers": [\
             "@types/monaco-editor",\
             "@types/vscode-oniguruma",\
             "@types/vscode-textmate",\
+            "@types/xterm-addon-canvas",\
+            "@types/xterm-addon-image",\
+            "@types/xterm-addon-search",\
+            "@types/xterm-addon-serialize",\
+            "@types/xterm-addon-unicode11",\
+            "@types/xterm-addon-webgl",\
+            "@types/xterm",\
             "@types/yauzl",\
             "monaco-editor",\
             "vscode-oniguruma",\
             "vscode-textmate",\
+            "xterm-addon-canvas",\
+            "xterm-addon-image",\
+            "xterm-addon-search",\
+            "xterm-addon-serialize",\
+            "xterm-addon-unicode11",\
+            "xterm-addon-webgl",\
+            "xterm",\
             "yauzl"\
           ],\
           "linkType": "HARD"\
@@ -3942,10 +3970,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           ],\
           "linkType": "HARD"\
         }],\
-        ["npm:0.37.1", {\
-          "packageLocation": "./.yarn/cache/monaco-editor-npm-0.37.1-a2bd15a3b3-f2ac123d30.zip/node_modules/monaco-editor/",\
+        ["npm:0.39.0", {\
+          "packageLocation": "./.yarn/cache/monaco-editor-npm-0.39.0-d239deb36c-6d906c5f07.zip/node_modules/monaco-editor/",\
           "packageDependencies": [\
-            ["monaco-editor", "npm:0.37.1"]\
+            ["monaco-editor", "npm:0.39.0"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -3989,23 +4017,23 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["monaco-languageclient", [\
-        ["npm:6.0.3", {\
-          "packageLocation": "./.yarn/unplugged/monaco-languageclient-virtual-0220fe4836/node_modules/monaco-languageclient/",\
+        ["npm:6.2.0", {\
+          "packageLocation": "./.yarn/unplugged/monaco-languageclient-virtual-e455a942ad/node_modules/monaco-languageclient/",\
           "packageDependencies": [\
-            ["monaco-languageclient", "npm:6.0.3"]\
+            ["monaco-languageclient", "npm:6.2.0"]\
           ],\
           "linkType": "SOFT"\
         }],\
-        ["virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.0.3", {\
-          "packageLocation": "./.yarn/unplugged/monaco-languageclient-virtual-0220fe4836/node_modules/monaco-languageclient/",\
+        ["virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.2.0", {\
+          "packageLocation": "./.yarn/unplugged/monaco-languageclient-virtual-e455a942ad/node_modules/monaco-languageclient/",\
           "packageDependencies": [\
-            ["monaco-languageclient", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.0.3"],\
+            ["monaco-languageclient", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.2.0"],\
             ["@types/monaco-editor", null],\
             ["@types/vscode", null],\
-            ["monaco-editor", "npm:0.37.1"],\
+            ["monaco-editor", "npm:0.39.0"],\
             ["vscode", [\
               "@codingame/monaco-vscode-api",\
-              "virtual:0220fe48368b5429df3c3ff585ba91b5bad9720bfd557c997a291ce50c1f1037b0e3786d85bf952a4352f9835f76211d863112a10f9e1a87633b98c49b0156c9#npm:1.78.8"\
+              "virtual:e455a942ad8d5fdd9b4c17efe7036be42332c62122540d411c9bf1a3caf397b7286aad409c4428994876bb675150aaef54c7ad0326f9a5823a09a56e9f34f472#npm:1.79.3"\
             ]],\
             ["vscode-jsonrpc", "npm:8.1.0"],\
             ["vscode-languageclient", "npm:8.1.0"]\
@@ -5073,7 +5101,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["json-editor-vue", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:0.10.5"],\
             ["monaco-editor-vue", "npm:1.0.10"],\
             ["monaco-editor-webpack-plugin", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:7.0.1"],\
-            ["monaco-languageclient", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.0.3"],\
+            ["monaco-languageclient", "virtual:692e851ae27d52a53df9cd196fe8cbbb57839a134a518949c9947fd9389cbc121a726e725deaca03b2bdba14fbb83c215bf23a6e8fa24aabdbdc9174dd6d9c84#npm:6.2.0"],\
             ["postcss", "npm:8.4.21"],\
             ["prettier", "npm:2.8.7"],\
             ["quasar", "npm:2.11.10"],\

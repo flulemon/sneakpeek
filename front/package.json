@@ -18,7 +18,7 @@
     "json-editor-vue": "^0.10.5",
     "monaco-editor-vue": "^1.0.10",
     "monaco-editor-webpack-plugin": "^7.0.1",
-    "monaco-languageclient": "^6.0.3",
+    "monaco-languageclient": "^6.2.0",
     "quasar": "^2.6.0",
     "vanilla-jsoneditor": "^0.16.1",
     "vscode-ws-jsonrpc": "^3.0.0",
