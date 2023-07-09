@@ -28,6 +28,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/parser@npm:^7.18.4":
+  version: 7.22.4
+  resolution: "@babel/parser@npm:7.22.4"
+  bin:
+    parser: ./bin/babel-parser.js
+  checksum: 0ca6d3a2d9aae2504ba1bc494704b64a83140884f7379f609de69bd39b60adb58a4f8ec692fe53fef8657dd82705d01b7e6efb65e18296326bdd66f71d52d9a9
+  languageName: node
+  linkType: hard
+
 "@babel/types@npm:^7.8.3":
   version: 7.21.4
   resolution: "@babel/types@npm:7.21.4"
@@ -446,6 +455,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vue/compiler-sfc@npm:2.7.14":
+  version: 2.7.14
+  resolution: "@vue/compiler-sfc@npm:2.7.14"
+  dependencies:
+    "@babel/parser": ^7.18.4
+    postcss: ^8.4.14
+    source-map: ^0.6.1
+  checksum: 25e00abaecb311f1effbf539bc3e4fdeedb39d35f9c2947b2640187a047e6a7400e693fd7da1d3a98977b9078c5bf629ca47f8b9a59dc14a080c0a1e1dd06a49
+  languageName: node
+  linkType: hard
+
 "@vue/compiler-sfc@npm:3.2.47":
   version: 3.2.47
   resolution: "@vue/compiler-sfc@npm:3.2.47"
@@ -792,6 +812,13 @@ __metadata:
   version: 1.5.1
   resolution: "base64-js@npm:1.5.1"
   checksum: 669632eb3745404c2f822a18fc3a0122d2f9a7a13f7fb8b5823ee19d1d2ff9ee5b52c53367176ea4ad093c332fd5ab4bd0ebae5a8e27917a4105a4cfc86b1005
+  languageName: node
+  linkType: hard
+
+"big.js@npm:^5.2.2":
+  version: 5.2.2
+  resolution: "big.js@npm:5.2.2"
+  checksum: b89b6e8419b097a8fb4ed2399a1931a68c612bce3cfd5ca8c214b2d017531191070f990598de2fc6f3f993d91c0f08aa82697717f6b3b8732c9731866d233c9e
   languageName: node
   linkType: hard
 
@@ -1317,6 +1344,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"csstype@npm:^3.1.0":
+  version: 3.1.2
+  resolution: "csstype@npm:3.1.2"
+  checksum: e1a52e6c25c1314d6beef5168da704ab29c5186b877c07d822bd0806717d9a265e8493a2e35ca7e68d0f5d472d43fac1cdce70fd79fd0853dff81f3028d857b5
+  languageName: node
+  linkType: hard
+
 "debug@npm:2.6.9":
   version: 2.6.9
   resolution: "debug@npm:2.6.9"
@@ -1455,6 +1489,13 @@ __metadata:
   version: 8.0.0
   resolution: "emoji-regex@npm:8.0.0"
   checksum: d4c5c39d5a9868b5fa152f00cada8a936868fd3367f33f71be515ecee4c803132d11b31a6222b2571b1e5f7e13890156a94880345594d0ce7e3c9895f560f192
+  languageName: node
+  linkType: hard
+
+"emojis-list@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "emojis-list@npm:3.0.0"
+  checksum: ddaaa02542e1e9436c03970eeed445f4ed29a5337dfba0fe0c38dfdd2af5da2429c2a0821304e8a8d1cadf27fdd5b22ff793571fa803ae16852a6975c65e8e70
   languageName: node
   linkType: hard
 
@@ -2919,6 +2960,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"json5@npm:^2.1.2":
+  version: 2.2.3
+  resolution: "json5@npm:2.2.3"
+  bin:
+    json5: lib/cli.js
+  checksum: 2a7436a93393830bce797d4626275152e37e877b265e94ca69c99e3d20c2b9dab021279146a39cdb700e71b2dd32a4cebd1514cd57cee102b1af906ce5040349
+  languageName: node
+  linkType: hard
+
 "jsonfile@npm:^6.0.1":
   version: 6.1.0
   resolution: "jsonfile@npm:6.1.0"
@@ -2962,6 +3012,17 @@ __metadata:
     prelude-ls: ^1.2.1
     type-check: ~0.4.0
   checksum: 12c5021c859bd0f5248561bf139121f0358285ec545ebf48bb3d346820d5c61a4309535c7f387ed7d84361cf821e124ce346c6b7cef8ee09a67c1473b46d0fc4
+  languageName: node
+  linkType: hard
+
+"loader-utils@npm:^2.0.2":
+  version: 2.0.4
+  resolution: "loader-utils@npm:2.0.4"
+  dependencies:
+    big.js: ^5.2.2
+    emojis-list: ^3.0.0
+    json5: ^2.1.2
+  checksum: a5281f5fff1eaa310ad5e1164095689443630f3411e927f95031ab4fb83b4a98f388185bb1fe949e8ab8d4247004336a625e9255c22122b815bb9a4c5d8fc3b7
   languageName: node
   linkType: hard
 
@@ -3293,6 +3354,69 @@ __metadata:
   languageName: node
   linkType: hard
 
+"monaco-editor-vue@npm:^1.0.10":
+  version: 1.0.10
+  resolution: "monaco-editor-vue@npm:1.0.10"
+  dependencies:
+    monaco-editor: ^0.19.3
+    vue: ^2.6.11
+  checksum: 4c3c332f3450362600d9329ffbb6e794cdd43159e82864b5f046a38248648c71e854b3a461af7a113b48e70b1aef92101e1e47fe50805df04af8fbd98b798bc5
+  languageName: node
+  linkType: hard
+
+"monaco-editor-webpack-plugin@npm:^7.0.1":
+  version: 7.0.1
+  resolution: "monaco-editor-webpack-plugin@npm:7.0.1"
+  dependencies:
+    loader-utils: ^2.0.2
+  peerDependencies:
+    monaco-editor: ">= 0.31.0"
+    webpack: ^4.5.0 || 5.x
+  checksum: 436814c724d5033254519ef8203f0df600d15c6bf0a3bf48a42ea678086becb56ed5685df2bca4cd4107855ecf8cea73722e52b63573edba5c020ff51b4f2d31
+  languageName: node
+  linkType: hard
+
+"monaco-editor@npm:^0.19.3":
+  version: 0.19.3
+  resolution: "monaco-editor@npm:0.19.3"
+  checksum: 45e4c570d416c83251f5e7f94ab06fd6186e475cd35bca8f9a43d47887ad7d3fab0af2f0e585ccd9cf116f85bfd813d970373d8d71ab21ca2059338663fed737
+  languageName: node
+  linkType: hard
+
+"monaco-editor@npm:^0.20.0":
+  version: 0.20.0
+  resolution: "monaco-editor@npm:0.20.0"
+  checksum: a7c7bf738bb8625812d40447be2fc085652fe40611a1a161f12983823d54f2d53b4ed5cf2b42841d8099ce3b536bd042fb6b781acce55a7183b99aa743a7ca39
+  languageName: node
+  linkType: hard
+
+"monaco-editor@npm:~0.39.0":
+  version: 0.39.0
+  resolution: "monaco-editor@npm:0.39.0"
+  checksum: 6d906c5f07fc6761b93bebee70bc1c461d6bbea493252751f4e2e60f26678faced9261ed9cca21613511695e6d7b75c2f2214b6d53aaa479a7e0b6f2d912f90b
+  languageName: node
+  linkType: hard
+
+"monaco-languageclient@npm:^6.2.0":
+  version: 6.2.0
+  resolution: "monaco-languageclient@npm:6.2.0"
+  dependencies:
+    monaco-editor: ~0.39.0
+    vscode: "npm:@codingame/monaco-vscode-api@1.79.3"
+    vscode-jsonrpc: ~8.1.0
+    vscode-languageclient: ~8.1.0
+  peerDependencies:
+    monaco-editor: ~0.39.0
+    vscode: "*"
+  peerDependenciesMeta:
+    monaco-editor:
+      optional: false
+    vscode:
+      optional: false
+  checksum: 906ae42c4d1460ac47f592e850c6e8951a25b244532526117ecc494714195b98da6583d96dab10822ee507d0ba1e4fef4c8660e4526133611c8a140e7c42f76b
+  languageName: node
+  linkType: hard
+
 "ms@npm:2.0.0":
   version: 2.0.0
   resolution: "ms@npm:2.0.0"
@@ -3318,6 +3442,13 @@ __metadata:
   version: 0.0.8
   resolution: "mute-stream@npm:0.0.8"
   checksum: ff48d251fc3f827e5b1206cda0ffdaec885e56057ee86a3155e1951bc940fd5f33531774b1cc8414d7668c10a8907f863f6561875ee6e8768931a62121a531a1
+  languageName: node
+  linkType: hard
+
+"nano-assign@npm:^1.0.0":
+  version: 1.0.1
+  resolution: "nano-assign@npm:1.0.1"
+  checksum: bf68815038e3e4018fe876dc004518647e9c3632cb9f6fd71edf37dad30abe6e0ac838f325eae2a3769df0372b9db45b3363cbba2727103f6bfc35e4f2b138df
   languageName: node
   linkType: hard
 
@@ -4060,6 +4191,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"semver@npm:^7.3.7":
+  version: 7.5.1
+  resolution: "semver@npm:7.5.1"
+  dependencies:
+    lru-cache: ^6.0.0
+  bin:
+    semver: bin/semver.js
+  checksum: d16dbedad53c65b086f79524b9ef766bf38670b2395bdad5c957f824dcc566b624988013564f4812bcace3f9d405355c3635e2007396a39d1bffc71cfec4a2fc
+  languageName: node
+  linkType: hard
+
 "send@npm:0.18.0":
   version: 0.18.0
   resolution: "send@npm:0.18.0"
@@ -4210,11 +4352,16 @@ __metadata:
     eslint-config-prettier: ^8.1.0
     eslint-plugin-vue: ^9.0.0
     json-editor-vue: ^0.10.5
+    monaco-editor-vue: ^1.0.10
+    monaco-editor-webpack-plugin: ^7.0.1
+    monaco-languageclient: ^6.2.0
     postcss: ^8.4.14
     prettier: ^2.5.1
     quasar: ^2.6.0
     vanilla-jsoneditor: ^0.16.1
+    vscode-ws-jsonrpc: ^3.0.0
     vue: ^3.0.0
+    vue-monaco: ^1.2.2
     vue-router: ^4.0.0
   languageName: unknown
   linkType: soft
@@ -4617,6 +4764,71 @@ __metadata:
   languageName: node
   linkType: hard
 
+"vscode-jsonrpc@npm:8.1.0, vscode-jsonrpc@npm:~8.1.0":
+  version: 8.1.0
+  resolution: "vscode-jsonrpc@npm:8.1.0"
+  checksum: 8980037cc0014802e6ac1e5dfcff9a65e8292727096dfd23c92d2039c0c45de74a00d6ee06938cf1a671286dd8258a5f418cf048c26ad0fcb0c44f96c9e0f278
+  languageName: node
+  linkType: hard
+
+"vscode-languageclient@npm:~8.1.0":
+  version: 8.1.0
+  resolution: "vscode-languageclient@npm:8.1.0"
+  dependencies:
+    minimatch: ^5.1.0
+    semver: ^7.3.7
+    vscode-languageserver-protocol: 3.17.3
+  checksum: b9d46aa256188dae19dcc5adb502be7193564b3313cbf20f99f83730ffbbf88cec40a08c4cafdc005b65c6385544c9f316de9b152067ab263221383326f00f95
+  languageName: node
+  linkType: hard
+
+"vscode-languageserver-protocol@npm:3.17.3":
+  version: 3.17.3
+  resolution: "vscode-languageserver-protocol@npm:3.17.3"
+  dependencies:
+    vscode-jsonrpc: 8.1.0
+    vscode-languageserver-types: 3.17.3
+  checksum: ffea508b2efd7f4853f1cef5e5eac58672f0ae71a9ec275ad37a4a2a24cdc3ff023f941e759951aee01c79da3f3279f10e034f19d875f081eb387181241bd836
+  languageName: node
+  linkType: hard
+
+"vscode-languageserver-types@npm:3.17.3":
+  version: 3.17.3
+  resolution: "vscode-languageserver-types@npm:3.17.3"
+  checksum: fbc8221297261f659a6482875ff2a419dc9d55965dc53745797da569ff9f819cd832e6f2699017baadd946548bbfe212e3f6971f3d960f12dc0ee9c629dacc07
+  languageName: node
+  linkType: hard
+
+"vscode-ws-jsonrpc@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "vscode-ws-jsonrpc@npm:3.0.0"
+  dependencies:
+    vscode-jsonrpc: ~8.1.0
+  checksum: 005482a364bb7334840f34bab1c04e69db90142333654503c2870c1bf5a1947deb4a8494cd088de5381950f49e8e48c5cd21363a64a60d170107078b7e759159
+  languageName: node
+  linkType: hard
+
+"vscode@npm:@codingame/monaco-vscode-api@1.79.3":
+  version: 1.79.3
+  resolution: "@codingame/monaco-vscode-api@npm:1.79.3"
+  peerDependencies:
+    monaco-editor: 0.39.0
+    vscode-oniguruma: ^1.7.0
+    vscode-textmate: ^9.0.0
+    xterm: 5.2.1
+    xterm-addon-canvas: 0.4.0
+    xterm-addon-image: 0.4.1
+    xterm-addon-search: 0.12.0
+    xterm-addon-serialize: 0.10.0
+    xterm-addon-unicode11: 0.5.0
+    xterm-addon-webgl: 0.15.0
+    yauzl: ^2.10.0
+  bin:
+    monaco-treemending: monaco-treemending.js
+  checksum: d6352538be07bbeab355aeb417ed7b884257f348957113cd526403bdbe0e7a5dc2d82ef2b1c5c4111e8f5faf6335c1349cb5c58cb1289f75a6f66fa5c4632507
+  languageName: node
+  linkType: hard
+
 "vue-demi@npm:^0.13.11":
   version: 0.13.11
   resolution: "vue-demi@npm:0.13.11"
@@ -4667,6 +4879,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"vue-monaco@npm:^1.2.2":
+  version: 1.2.2
+  resolution: "vue-monaco@npm:1.2.2"
+  dependencies:
+    monaco-editor: ^0.20.0
+    nano-assign: ^1.0.0
+  checksum: 5d5d46aa3ac386938d5a39bb5e727fd8de0580901f08ab1d9666af350375626af387aa301c09a1782a5a012727e8b74c0d7f1f560e37efe89ea1aab2f23ddfd8
+  languageName: node
+  linkType: hard
+
 "vue-router@npm:^4.0.0":
   version: 4.1.6
   resolution: "vue-router@npm:4.1.6"
@@ -4675,6 +4897,16 @@ __metadata:
   peerDependencies:
     vue: ^3.2.0
   checksum: c7f0156ac03a9561d110f5ff778121eee7c8c154be6ec5064558ba22ab5237db36f29ffffc95cc16d692cc68a26df0c434f395401c0e3b48f782c7bed51391c6
+  languageName: node
+  linkType: hard
+
+"vue@npm:^2.6.11":
+  version: 2.7.14
+  resolution: "vue@npm:2.7.14"
+  dependencies:
+    "@vue/compiler-sfc": 2.7.14
+    csstype: ^3.1.0
+  checksum: 8b06da67cc40870c66a30b7a6bc2874950cd4383792c371eb30497dd14fc7b41cf308b1c4517368d8f0e7ac16198c08de19236f6a79fe43f4bdbc4a1d9d4ad07
   languageName: node
   linkType: hard
 

@@ -53,6 +53,15 @@
             New scraper
           </q-item-section>
         </q-item>
+        <q-item clickable v-ripple :to="$router.resolve({name: 'NewDynamicScraperPage'})"
+                :class="$q.dark.isActive ? 'text-white': 'text-black'" v-if="!isReadOnly">
+          <q-item-section avatar>
+            <q-icon name="fa-solid fa-plus" />
+          </q-item-section>
+          <q-item-section>
+            New dynamic scraper
+          </q-item-section>
+        </q-item>
         <q-space vertical />
         <q-item clickable v-ripple href="https://github.com/flulemon/sneakpeek" target="_blank">
           <q-item-section avatar>

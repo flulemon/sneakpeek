@@ -2,10 +2,10 @@
   <q-form>
     <q-input readonly v-model="draftScraper.id" label="ID" v-if="mode === 'edit'" />
     <q-input v-model="draftScraper.name" label="Name" :readonly="isReadOnly" />
-    <q-select v-model="draftScraper.schedule" label="Schedule" :options="schedules" emit-value :readonly="isReadOnly" />
+    <q-select v-model="draftScraper.schedule" label="Schedule" :options="schedules" :readonly="isReadOnly" />
     <q-input v-model="draftScraper.schedule_crontab" label="Crontab" v-if="draftScraper.schedule === 'crontab'" :readonly="isReadOnly" />
-    <q-select v-model="draftScraper.schedule_priority" label="Priority" :options="priorities" emit-value :readonly="isReadOnly" />
-    <q-select v-model="draftScraper.handler" label="Handler" :options="handlers" emit-value :readonly="isReadOnly" />
+    <q-select v-model="draftScraper.priority" label="Priority" :options="priorities" :readonly="isReadOnly" />
+    <q-select v-model="draftScraper.handler" label="Handler" :options="handlers" :readonly="isReadOnly" />
     <JsonEditorVue v-model="draftScraper.config" mode="text" :mainMenuBar="false" :statusBar="false"
                     class="q-py-md" :class="$q.dark.isActive ? 'jse-theme-dark': ''" :readOnly="isReadOnly" />
     <div class="flex justify-end">
@@ -33,7 +33,7 @@ import JsonEditorVue from 'json-editor-vue';
 import { extend, format } from 'quasar';
 import useQuasar from 'quasar/src/composables/use-quasar.js';
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css';
-import { createOrUpdateScraper, deleteScraper, getPriorities, getSchedules, getScraperHandlers, isReadOnly } from "../api.js";
+import { createScraper, deleteScraper, getPriorities, getSchedules, getScraperHandlers, isReadOnly, updateScraper } from "../api.js";
 
 const { capitalize } = format;
 
@@ -113,8 +113,8 @@ export default {
       const schedule = this.schedules.filter(x => x.value === this.draftScraper.schedule)[0];
       this.draftScraper.schedule = schedule || this.draftScraper.schedule;
 
-      const priority = this.priorities.filter(x => x.value === this.draftScraper.schedule_priority)[0];
-      this.draftScraper.schedule_priority = priority || this.draftScraper.schedule_priority;
+      const priority = this.priorities.filter(x => x.value === this.draftScraper.priority)[0];
+      this.draftScraper.priority = priority || this.draftScraper.priority;
     },
     saveScraper() {
       if (typeof this.draftScraper.config === 'string' || this.draftScraper.config instanceof String) {
@@ -124,20 +124,22 @@ export default {
         id: this.draftScraper.id,
         name: this.draftScraper.name,
         handler: this.draftScraper.handler,
-        schedule: this.draftScraper.schedule,
-        schedule_priority: this.draftScraper.schedule_priority,
+        schedule: this.draftScraper.schedule.value || this.draftScraper.schedule,
+        priority: this.draftScraper.priority.value == 0 ? 0 : (this.draftScraper.priority.value || this.draftScraper.priority),
         schedule_crontab: this.draftScraper.schedule_crontab,
         config: this.draftScraper.config,
       }
       this.saveLoading = true;
-      createOrUpdateScraper(payload)
+      const method = this.draftScraper.id ? updateScraper : createScraper;
+      method(payload)
         .then((result) => {
           this.$emit('update:modelValue', result);
+          this.prettifyScraperParamsLabels();
           this.$q.notify({
-            message: `Successfully ${mode === 'edit' ? 'updated' : 'created'} scraper configuration`,
+            message: `Successfully ${this.mode === 'edit' ? 'updated' : 'created'} scraper configuration`,
             color: "positive",
           });
-          if (this.mode === 'edit') {
+          if (this.mode === 'new') {
             this.$router.push({ name: 'ScraperPage', params: {id: result.id }});
           }
         })

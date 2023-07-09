@@ -2,13 +2,13 @@ import logging
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-from sneakpeek.models import ScraperJob
+from sneakpeek.queue.model import Task
 
-ctx_scraper_job = ContextVar("scraper_job")
+ctx_task = ContextVar("scraper_job")
 
 
 @contextmanager
-def scraper_job_context(scraper_job: ScraperJob) -> None:
+def task_context(task: Task) -> None:
     """
     Initialize scraper job logging context which automatically adds
     scraper and scraper job IDs to the logging metadata
@@ -17,13 +17,13 @@ def scraper_job_context(scraper_job: ScraperJob) -> None:
         scraper_job (ScraperJob): Scraper job definition
     """
     try:
-        token = ctx_scraper_job.set(scraper_job)
+        token = ctx_task.set(task)
         yield
     finally:
-        ctx_scraper_job.reset(token)
+        ctx_task.reset(token)
 
 
-class ScraperContextInjectingFilter(logging.Filter):
+class TaskContextInjectingFilter(logging.Filter):
     """
     Scraper context filter which automatically injects
     scraper and scraper job IDs to the logging metadata.
@@ -39,13 +39,11 @@ class ScraperContextInjectingFilter(logging.Filter):
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
-        """Injects scraper metadata into log record:
+        """Injects task metadata into log record:
 
-        * ``scraper_job_id`` - Scraper Job ID
-        * ``scraper_id`` - Scraper ID
-        * ``scraper_name`` - Scraper name
-        * ``scraper_handler`` - Scraper logic implementation
-        * ``scraper_job_human_name`` - Formatted scraper job ID (``<name>::<scraper_id>::<scraper_job_id>``)
+        * ``task_id`` - Task ID
+        * ``task_name`` - Task name
+        * ``task_handler`` - Task handler
 
         Args:
             record (logging.LogRecord): Log record to inject metadata into
@@ -53,22 +51,17 @@ class ScraperContextInjectingFilter(logging.Filter):
         Returns:
             bool: Always True
         """
-        scraper_job: ScraperJob = ctx_scraper_job.get(None)
-        record.scraper_job_human_name = "-"
-        if scraper_job:
-            record.scraper_job_id = scraper_job.id
-            scraper = scraper_job.scraper
-            if scraper:
-                record.scraper_id = scraper.id
-                record.scraper_name = scraper.name
-                record.scraper_handler = scraper.handler
-                record.scraper_job_human_name = (
-                    f"{scraper.name}::{scraper.id}::{scraper_job.id}"
-                )
+        task: Task | None = ctx_task.get(None)
+        record.task_id = task.id if task else ""
+        record.task_name = task.task_name if task else ""
+        record.task_handler = task.task_handler if task else ""
         return True
 
 
-def configure_logging(level: int = logging.INFO):
+def configure_logging(
+    level: int = logging.INFO,
+    session_logger_handler: logging.Handler | None = None,
+):
     """
     Helper function to configure logging:
 
@@ -83,10 +76,12 @@ def configure_logging(level: int = logging.INFO):
     handler = logging.StreamHandler()
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s][%(levelname)s][%(name)s:%(lineno)d][%(scraper_job_human_name)s] %(message)s"
+            "%(asctime)s][%(levelname)s][%(name)s:%(lineno)d]%(task_handler)s:%(task_name)s:%(task_id)s - %(message)s"
         )
     )
-    handler.addFilter(ScraperContextInjectingFilter())
+    handler.addFilter(TaskContextInjectingFilter())
     logger.addHandler(handler)
+    if session_logger_handler:
+        logger.addHandler(session_logger_handler)
     logger.setLevel(level)
     logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)

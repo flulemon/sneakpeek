@@ -22,8 +22,8 @@ sys.path.insert(0, os.path.abspath(".."))
 project = "Sneakpeek"
 copyright = "2023, Dan Yazovsky"
 author = "Dan Yazovsky"
-version = "0.1"
-release = "0.1.9"
+version = "0.2"
+release = "0.2.1"
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.coverage", "sphinx.ext.napoleon"]
 templates_path = ["_templates"]
 language = "en"

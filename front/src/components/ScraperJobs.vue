@@ -37,9 +37,7 @@
     </template>
     <template v-slot:body-cell-result="props">
       <q-td :props="props">
-        <p style="width: 200px; word-break: break-all!important;">
-          {{ props.value && props.value.substring(0, 50) }}
-        </p>
+        <pre class="job-result">{{ formatResult(props.value) }}</pre>
       </q-td>
     </template>
   </q-table>
@@ -68,6 +66,7 @@ export default {
         { name: "result", label: "Result", field: "result", align: "center" },
       ],
       loader: null,
+      loadingInBackground: false,
     }
   },
   created() {
@@ -75,10 +74,11 @@ export default {
     this.loadJobs()
       .catch((error => this.error = error))
       .finally(() => this.loading = false);
-    this.loader = setInterval(this.loadJobs, 1000);
+    this.loadingInBackground = true;
+    this.loadJobsInBackground(1000);
   },
   unmounted() {
-    clearInterval(this.loader);
+    this.loadingInBackground = false;
   },
   methods: {
     convertToUserTz(value) {
@@ -89,6 +89,14 @@ export default {
     formatDate(value) {
       const converted = this.convertToUserTz(value);
       return date.formatDate(converted, "YYYY-MM-DD HH:mm");
+    },
+    formatResult(value) {
+      try {
+        const parsed = JSON.parse(value);
+        return JSON.stringify(parsed, null, 2);
+      } catch (e) {
+          return value;
+      }
     },
     getRelativeDate(value) {
       const now = new Date();
@@ -119,7 +127,21 @@ export default {
     },
     loadJobs() {
       return getScraperJobs(this.id).then((data) => this.rows = data);
+    },
+    loadJobsInBackground() {
+      if (!this.loadingInBackground) {
+        return;
+      }
+      this.loadJobs();
+      setTimeout(this.loadJobsInBackground, 1000);
     }
   }
 }
 </script>
+<style scoped>
+.job-result {
+  max-width: 400px;
+  text-wrap: wrap;
+  text-align: start;
+}
+</style>

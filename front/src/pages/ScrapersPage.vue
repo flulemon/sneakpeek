@@ -14,6 +14,17 @@
         </q-input>
       </template>
 
+      <template v-slot:body-cell-name="props">
+        <q-td :props="props">
+          <q-item clickable v-ripple :href="$router.resolve({ name: 'ScraperPage', params: { id: props.value.id } }).href">
+            <q-item-section>
+              {{ props.value.name }}
+            </q-item-section>
+          </q-item>
+        </q-td>
+      </template>
+
+
       <template v-slot:body-cell-priority="props">
         <q-td :props="props">
           <priority-chip :value="props.value" size="sm" />
@@ -28,8 +39,11 @@
 
       <template v-slot:body-cell-actions="props">
         <q-td :props="props">
-            <q-btn flat round icon="fa-solid fa-edit" size="sm"
-                :to="$router.resolve({ name: 'ScraperPage', params: { id: props.value.id } })" />
+            <q-btn flat size="sm"
+                :to="$router.resolve({ name: 'ScraperPage', params: { id: props.value.id } })">
+              <q-icon name="fa-solid fa-edit" class="q-mr-sm" />
+              Edit
+            </q-btn>
         </q-td>
       </template>
 
@@ -51,9 +65,9 @@ export default {
       error: false,
       columns: [
         { name: 'id', label: 'ID', field: 'id', align: 'left' },
-        { name: 'name', label: 'Name', field: 'name', align: 'left'},
+        { name: 'name', label: 'Name', field: row => row, align: 'left'},
         { name: 'schedule', label: 'Schedule', field: 'schedule', align: 'center' },
-        { name: 'priority', label: 'Priority', field: 'schedule_priority', align: 'center' },
+        { name: 'priority', label: 'Priority', field: 'priority', align: 'center' },
         { name: 'actions', label: 'Actions', field: row => row, align: 'right' },
       ],
       rows: [],

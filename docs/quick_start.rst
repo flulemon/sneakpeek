@@ -19,8 +19,7 @@ The next step would be implementing scraper logic (or so called scraper handler)
 
     from pydantic import BaseModel
 
-    from sneakpeek.scraper_context import ScraperContext
-    from sneakpeek.scraper_handler import ScraperHandler
+    from sneakpeek.scraper.model import ScraperContextABC, ScraperHandler
 
     
     # This defines model of handler parameters that are defined 
@@ -52,7 +51,7 @@ The next step would be implementing scraper logic (or so called scraper handler)
         # The only argument that is passed is `sneakpeek.scraper_context.ScraperContext`
         # It implements basic async HTTP client and also provides parameters
         # that are defined in the scraper config
-        async def run(self, context: ScraperContext) -> str:
+        async def run(self, context: ScraperContextABC) -> str:
             params = DemoScraperParams.parse_obj(context.params)
             # Perform GET request to the URL defined in the scraper config 
             response = await context.get(params.url)
@@ -75,73 +74,70 @@ To do so let's configure **SneakpeekServer**:
 
     # file: main.py
 
-    from sneakpeek.models import Scraper, ScraperJobPriority, ScraperSchedule
-    from sneakpeek.storage.in_memory_storage import (
-        InMemoryLeaseStorage,
-        InMemoryScraperJobsStorage,
-        InMemoryScrapersStorage,
-    )
+    import random
+    from uuid import uuid4
+
+    from demo.demo_scraper import DemoScraper
     from sneakpeek.logging import configure_logging
-    from sneakpeek.plugins.requests_logging_plugin import RequestsLoggingPlugin
-    from sneakpeek.scraper_config import ScraperConfig
+    from sneakpeek.middleware.parser import ParserMiddleware
+    from sneakpeek.middleware.rate_limiter_middleware import (
+        RateLimiterMiddleware,
+        RateLimiterMiddlewareConfig,
+    )
+    from sneakpeek.middleware.requests_logging_middleware import RequestsLoggingMiddleware
+    from sneakpeek.middleware.robots_txt_middleware import RobotsTxtMiddleware
+    from sneakpeek.middleware.user_agent_injecter_middleware import (
+        UserAgentInjecterMiddleware,
+        UserAgentInjecterMiddlewareConfig,
+    )
+    from sneakpeek.queue.in_memory_storage import InMemoryQueueStorage
+    from sneakpeek.queue.model import TaskPriority
+    from sneakpeek.scheduler.in_memory_lease_storage import InMemoryLeaseStorage
+    from sneakpeek.scheduler.model import TaskSchedule
+    from sneakpeek.scraper.in_memory_storage import InMemoryScraperStorage
+    from sneakpeek.scraper.model import Scraper
     from sneakpeek.server import SneakpeekServer
 
-    from demo_scraper import DemoScraper
 
-    # For now let's have a static list of scrapers
-    # but this can as well be a dynamic list which is
-    # stored in some SQL DB 
-    scrapers = [
-        Scraper(
-            # Unique ID of the scraper
-            id=1,
-            # Name of the scraper
-            name=f"Demo Scraper",
-            # How frequent should scraper be executed
-            schedule=ScraperSchedule.EVERY_MINUTE,
-            # Our handler name
-            handler="demo_scraper",
-            # Scraper config, note that params must be successfully 
-            # deserialized into `DemoScraperParams` class
-            config=ScraperConfig(params={"url": url}),
-            # Priority of the periodic scraper jobs.
-            # Note that manually invoked jobs are always 
-            # scheduled with `UTMOST` priority
-            schedule_priority=ScraperJobPriority.UTMOST,
+    def get_server(urls: list[str], is_read_only: bool) -> SneakpeekServer:
+        handler = DemoScraper()
+        return SneakpeekServer.create(
+            handlers=[handler],
+            scraper_storage=InMemoryScraperStorage([
+                Scraper(
+                    id=str(uuid4()),
+                    name=f"Demo Scraper",
+                    schedule=TaskSchedule.EVERY_MINUTE,
+                    handler=handler.name,
+                    config=ScraperConfig(params={"start_url": "http://example.com"}),
+                    schedule_priority=TaskPriority.NORMAL,
+                )
+            ]),
+            queue_storage=InMemoryQueueStorage(),
+            lease_storage=InMemoryLeaseStorage(),
+            middlewares=[
+                RequestsLoggingMiddleware(),
+                RobotsTxtMiddleware(),
+                RateLimiterMiddleware(RateLimiterMiddlewareConfig(max_rpm=60)),
+                UserAgentInjecterMiddleware(
+                    UserAgentInjecterMiddlewareConfig(use_external_data=False)
+                ),
+                ParserMiddleware(),
+            ],
         )
-    ]
 
-    # Define a storage to use to store the list of the scrapers
-    scrapers_storage = InMemoryScrapersStorage(scrapers)
 
-    # Define a jobs storage to use
-    jobs_storage = InMemoryScraperJobsStorage()
-    
-    # Define a lease storage for the scheduler to ensure
-    # that at any point of time there's only 1 active scheduler.
-    # This eliminates concurrent scrapers execution
-    lease_storage = InMemoryLeaseStorage()
+    def main():
+        args = parser.parse_args()
+        server = get_server(args.urls, args.read_only)
+        configure_logging()
+        server.serve()
 
-    # Configure server
-    server = SneakpeekServer.create(
-        # List of implemented scraper handlers
-        handlers=[DemoScraper()],
-        scrapers_storage=scrapers_storage,
-        jobs_storage=jobs_storage,
-        lease_storage=lease_storage,
-
-        # List of plugins which will be invoked before request
-        # is dispatched or after response is received.
-        # In the example we use `sneakpeek.plugins.requests_logging_plugin.RequestsLoggingPlugin`
-        # which logs all requests and responses being made
-        plugins=[RequestsLoggingPlugin()],
-    )
 
     if __name__ == "__main__":
-        configure_logging()
-        # Run server (spawns scheduler, API and worker)
-        # open http://localhost:8080 and explore UI
-        server.serve()
+        main()
+
+
 
 Now, the only thing is left is to actually run the server:
 
