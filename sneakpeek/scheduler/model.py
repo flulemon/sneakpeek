@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from enum import Enum
 from uuid import uuid4
 
-from more_itertools import flatten
 from pydantic import BaseModel
 
 from sneakpeek.queue.model import TaskPriority
@@ -104,10 +103,11 @@ class MultiPeriodicTasksStorage(PeriodicTasksStorageABC):
         self.storages = storages
 
     async def get_periodic_tasks(self) -> list[PeriodicTask]:
-        return flatten(
+        return sum(
             await asyncio.gather(
                 *[storage.get_periodic_tasks() for storage in self.storages]
-            )
+            ),
+            [],
         )
 
 
