@@ -33,8 +33,8 @@ from sneakpeek.server import SneakpeekServer
 SCRAPER_1 = "scraper_1"
 SCRAPER_2 = "scraper_2"
 TEST_URL = "test_url"
-MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN = 2.1
-MIN_SECONDS_TO_EXECUTE_RUN = 2.1
+MIN_SECONDS_TO_HAVE_1_SUCCESSFUL_RUN = 2.5
+MIN_SECONDS_TO_EXECUTE_RUN = 2.5
 HANDLER_NAME = "test_scraper_handler"
 
 
