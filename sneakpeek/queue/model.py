@@ -182,6 +182,19 @@ class QueueABC(ABC):
         """
         ...
 
+    @abstractmethod
+    async def get_task_instance(self, task_id: int) -> Task:
+        """
+        Get task instance by ID
+
+        Args:
+            task_id (int): Task ID
+
+        Returns:
+            Task: Task instance
+        """
+        ...
+
 
 class QueueStorageABC(ABC):
     """Priority queue storage"""

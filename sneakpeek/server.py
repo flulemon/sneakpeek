@@ -23,6 +23,7 @@ from sneakpeek.scheduler.model import (
 )
 from sneakpeek.scheduler.scheduler import Scheduler
 from sneakpeek.scraper.dynamic_scraper_handler import DynamicScraperHandler
+from sneakpeek.scraper.ephemeral_scraper_task_handler import EphemeralScraperTaskHandler
 from sneakpeek.scraper.model import Middleware, ScraperHandler, ScraperStorageABC
 from sneakpeek.scraper.runner import ScraperRunner
 from sneakpeek.scraper.task_handler import ScraperTaskHandler
@@ -85,6 +86,7 @@ class SneakpeekServer:
         scheduler_lease_duration: timedelta = SCHEDULER_DEFAULT_LEASE_DURATION,
         middlewares: list[Middleware] | None = None,
         add_dynamic_scraper_handler: bool = False,
+        session_logger_handler: logging.Handler | None = None,
     ):
         """
         Create Sneakpeek server using default API, worker and scheduler implementations
@@ -104,12 +106,18 @@ class SneakpeekServer:
             plugins (list[Plugin] | None, optional): List of plugins that will be used by scraper runner. Can be omitted if run_worker is False. Defaults to None.
             add_dynamic_scraper_handler (bool, optional): Whether to add dynamic scraper handler which can execute arbitrary user scripts. Defaults to False.
         """
+        if add_dynamic_scraper_handler:
+            dynamic_scraper_handler = DynamicScraperHandler()
+            if not any(h for h in handlers if h.name == dynamic_scraper_handler.name):
+                handlers.append(dynamic_scraper_handler)
+
         runner = ScraperRunner(scraper_storage, middlewares)
         queue = Queue(queue_storage)
         task_handlers = [
             KillDeadTasksHandler(queue),
             DeleteOldTasksHandler(queue),
             ScraperTaskHandler(handlers, runner, scraper_storage),
+            EphemeralScraperTaskHandler(handlers, runner),
         ]
         periodic_tasks_storage = MultiPeriodicTasksStorage(
             [
@@ -137,13 +145,11 @@ class SneakpeekServer:
             if with_worker
             else None
         )
-
-        if add_dynamic_scraper_handler:
-            dynamic_scraper_handler = DynamicScraperHandler()
-            if not any(h for h in handlers if h.name == dynamic_scraper_handler.name):
-                handlers.append(dynamic_scraper_handler)
-
-        api = create_api(scraper_storage, queue, handlers) if with_web_server else None
+        api = (
+            create_api(scraper_storage, queue, handlers, session_logger_handler)
+            if with_web_server
+            else None
+        )
         return SneakpeekServer(consumer, scheduler, api, web_server_port)
 
     def serve(

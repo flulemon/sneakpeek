@@ -17,7 +17,7 @@ _SCRAPER_KEY_PREFIX = "scraper:"
 
 
 class RedisScraperStorage(ScraperStorageABC):
-    def __init__(self, redis: Redis(), is_read_only: bool = False) -> None:
+    def __init__(self, redis: Redis, is_read_only: bool = False) -> None:
         self.redis = redis
         self.read_only = is_read_only
 

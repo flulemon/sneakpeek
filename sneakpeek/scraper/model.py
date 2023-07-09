@@ -17,6 +17,7 @@ from sneakpeek.scheduler.model import (
 )
 
 SCRAPER_PERIODIC_TASK_HANDLER_NAME = "scraper"
+EPHEMERAL_SCRAPER_TASK_HANDLER_NAME = "ephemeral_scraper"
 
 ScraperId = str
 HttpHeaders = dict[str, str]
@@ -523,4 +524,13 @@ class ScraperRunnerABC(ABC):
             handler (ScraperHandler): Scraper logic implementation
             scraper (Scraper): Scraper metadata
         """
+        ...
+
+    @abstractmethod
+    async def run_ephemeral(
+        self,
+        handler: ScraperHandler,
+        config: ScraperConfig | None = None,
+        state: str | None = None,
+    ) -> str | None:
         ...

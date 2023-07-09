@@ -118,3 +118,9 @@ class Queue(QueueABC):
     @override
     async def get_task_instances(self, task_name: str) -> list[Task]:
         return await self.storage.get_task_instances(task_name)
+
+    @count_invocations(subsystem="queue")
+    @measure_latency(subsystem="queue")
+    @override
+    async def get_task_instance(self, task_id: int) -> Task:
+        return await self.storage.get_task_instance(task_id)

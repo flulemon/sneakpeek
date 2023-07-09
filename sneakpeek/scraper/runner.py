@@ -1,7 +1,7 @@
+import asyncio
 import logging
 from uuid import uuid4
 
-from sneakpeek.logging import configure_logging
 from sneakpeek.metrics import count_invocations
 from sneakpeek.scheduler.model import TaskSchedule
 from sneakpeek.scraper.context import ScraperContext
@@ -23,6 +23,7 @@ class ScraperRunner(ScraperRunnerABC):
         self,
         scraper_storage: ScraperStorageABC,
         middlewares: list[Middleware] | None = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         """
         Args:
@@ -41,9 +42,7 @@ class ScraperRunner(ScraperRunnerABC):
         config: ScraperConfig | None = None,
         state: str | None = None,
         middlewares: list[Middleware] | None = None,
-        log_level: int = logging.DEBUG,
-    ):
-        configure_logging(log_level)
+    ) -> str:
         scraper = Scraper(
             id=str(uuid4()),
             name="test_handler",
@@ -56,6 +55,35 @@ class ScraperRunner(ScraperRunnerABC):
             InMemoryScraperStorage([scraper]),
             middlewares=middlewares,
         ).run(handler, scraper)
+
+    @count_invocations(subsystem="scraper_runner")
+    async def run_ephemeral(
+        self,
+        handler: ScraperHandler,
+        config: ScraperConfig | None = None,
+        state: str | None = None,
+    ) -> str | None:
+        self.logger.info(f"Running ephemeral scraper with {handler.name}")
+
+        context = ScraperContext(
+            config,
+            self.middlewares,
+            scraper_state=state,
+        )
+        try:
+            await context.start_session()
+            result = await handler.run(context)
+            self.logger.info(
+                f"Successfully executed ephemeral scraper with {handler.name}: {result}"
+            )
+            return result
+        except Exception:
+            self.logger.exception(
+                f"Failed to run ephemeral scraper with {handler.name}"
+            )
+            raise
+        finally:
+            await context.close()
 
     @count_invocations(subsystem="scraper_runner")
     async def run(self, handler: ScraperHandler, scraper: Scraper) -> str:
@@ -78,10 +106,15 @@ class ScraperRunner(ScraperRunnerABC):
         )
         try:
             await context.start_session()
-            return await handler.run(context)
+            result = await handler.run(context)
+            self.logger.info(
+                f"Successfully executed ephemeral scraper with {handler.name}: {result}"
+            )
+            return result
         except Exception:
             self.logger.exception(
                 f"Failed to run scraper {scraper.handler}::{scraper.name}"
             )
+            raise
         finally:
             await context.close()

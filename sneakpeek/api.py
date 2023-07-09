@@ -1,5 +1,7 @@
+import logging
 import os
 import pathlib
+from datetime import timedelta
 
 import fastapi_jsonrpc as jsonrpc
 from fastapi import Body, Request, Response
@@ -23,7 +25,9 @@ from sneakpeek.queue.model import (
     TaskPriority,
 )
 from sneakpeek.scheduler.model import TaskSchedule
+from sneakpeek.scraper.ephemeral_scraper_task_handler import EphemeralScraperTask
 from sneakpeek.scraper.model import (
+    EPHEMERAL_SCRAPER_TASK_HANDLER_NAME,
     SCRAPER_PERIODIC_TASK_HANDLER_NAME,
     CreateScraperRequest,
     Scraper,
@@ -32,6 +36,7 @@ from sneakpeek.scraper.model import (
     ScraperNotFoundError,
     ScraperStorageABC,
 )
+from sneakpeek.session_loggers.base import LogLine, SessionLogger
 
 
 class Priority(BaseModel):
@@ -55,6 +60,7 @@ def get_api_entrypoint(
     scraper_storage: ScraperStorageABC,
     queue: QueueABC,
     handlers: list[ScraperHandler],
+    session_logger_handler: SessionLogger | None = None,
 ) -> jsonrpc.Entrypoint:  # pragma: no cover
     """
     Create public JsonRPC API entrypoint (mostly mimics storage and queue API)
@@ -121,6 +127,26 @@ def get_api_entrypoint(
     async def get_task_instances(task_name: str = Body(...)) -> list[Task]:
         return await queue.get_task_instances(task_name)
 
+    @entrypoint.method(errors=[ScraperNotFoundError])
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
+    async def get_task_instance(task_id: int = Body(...)) -> Task:
+        return await queue.get_task_instance(task_id)
+
+    @entrypoint.method(errors=[ScraperNotFoundError])
+    @count_invocations(subsystem="api")
+    @measure_latency(subsystem="api")
+    async def get_task_logs(
+        task_id: int = Body(...),
+        last_log_line_id: str | None = Body(default=None),
+        max_lines: int = Body(default=100),
+    ) -> list[LogLine]:
+        return await session_logger_handler.read(
+            task_id,
+            last_log_line_id=last_log_line_id,
+            max_lines=max_lines,
+        )
+
     @entrypoint.method()
     @count_invocations(subsystem="api")
     @measure_latency(subsystem="api")
@@ -146,6 +172,20 @@ def get_api_entrypoint(
     async def is_read_only() -> bool:
         return scraper_storage.is_read_only()
 
+    @entrypoint.method()
+    async def run_ephemeral(
+        task: EphemeralScraperTask, priority: TaskPriority = TaskPriority.NORMAL
+    ) -> Task:
+        return await queue.enqueue(
+            EnqueueTaskRequest(
+                task_name=EPHEMERAL_SCRAPER_TASK_HANDLER_NAME,
+                task_handler=EPHEMERAL_SCRAPER_TASK_HANDLER_NAME,
+                priority=priority,
+                timeout=timedelta(hours=1),
+                payload=task.json(),
+            )
+        )
+
     return entrypoint
 
 
@@ -153,6 +193,7 @@ def create_api(
     scraper_storage: ScraperStorageABC,
     queue: QueueABC,
     handlers: list[ScraperHandler],
+    session_logger_handler: logging.Handler | None = None,
 ) -> jsonrpc.API:  # pragma: no cover
     """
     Create JsonRPC API (FastAPI is used under the hood)
@@ -174,6 +215,7 @@ def create_api(
             scraper_storage,
             queue,
             handlers,
+            session_logger_handler,
         )
     )
     app.add_route("/metrics", metrics)

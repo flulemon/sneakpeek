@@ -58,7 +58,10 @@ class TaskContextInjectingFilter(logging.Filter):
         return True
 
 
-def configure_logging(level: int = logging.INFO):
+def configure_logging(
+    level: int = logging.INFO,
+    session_logger_handler: logging.Handler | None = None,
+):
     """
     Helper function to configure logging:
 
@@ -78,5 +81,7 @@ def configure_logging(level: int = logging.INFO):
     )
     handler.addFilter(TaskContextInjectingFilter())
     logger.addHandler(handler)
+    if session_logger_handler:
+        logger.addHandler(session_logger_handler)
     logger.setLevel(level)
     logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)
