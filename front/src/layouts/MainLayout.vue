@@ -53,13 +53,13 @@
             New scraper
           </q-item-section>
         </q-item>
-        <q-item clickable v-ripple :to="$router.resolve({name: 'NewDynamicScraperPage'})"
+        <q-item clickable v-ripple :to="$router.resolve({name: 'ScraperIde'})"
                 :class="$q.dark.isActive ? 'text-white': 'text-black'" v-if="!isReadOnly">
           <q-item-section avatar>
-            <q-icon name="fa-solid fa-plus" />
+            <q-icon name="fa-solid fa-code" />
           </q-item-section>
           <q-item-section>
-            New dynamic scraper
+            Scraper IDE
           </q-item-section>
         </q-item>
         <q-space vertical />

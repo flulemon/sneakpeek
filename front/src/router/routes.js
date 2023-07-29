@@ -7,7 +7,7 @@ const routes = [
     children: [
       { name: 'ScrapersPage', path: '', component: () => import('src/pages/ScrapersPage.vue') },
       { name: 'NewScraperPage', path: 'new', component: () => import('src/pages/NewScraperPage.vue') },
-      { name: 'NewDynamicScraperPage', path: 'new-dynamic', component: () => import('src/pages/NewDynamicScraperPage.vue') },
+      { name: 'ScraperIde', path: 'ide', component: () => import('src/pages/ScraperIde.vue') },
       { name: 'ScraperPage', path: 'scraper/:id', component: () => import('src/pages/ScraperPage.vue'), props: true },
     ]
   },

@@ -1,17 +1,40 @@
 <template>
-
   <q-page class="flex flex-top column q-py-md">
     <div class="text-h6 q-px-xl flex row">
-      New dynamic scraper
-      <q-space />
-      <q-btn @click="run" size="sm">
-        <q-icon name="fa-solid fa-play" class="q-mr-sm" />
-        Run
-      </q-btn>
+      Scraper IDE
     </div>
     <q-separator />
   <MonacoEditor :value="code" @change="updateCode" language="python" :theme="theme" :options="options" class="editor" />
-  <task-logs :task-id="lastTaskId" />
+  <q-separator class="q-mt-lg q-mb-sm" />
+  <div>
+    <div class="text-h6 q-px-xl flex row">
+      Debugger
+    </div>
+    <div class="flex column q-px-xl" v-if="args && Object.keys(args).length > 0">
+      <div class="text">
+        Session arguments
+      </div>
+      <div v-for="arg in Object.keys(args)" :key="arg" class="flex row items-baseline">
+        <q-input v-model="args[arg]" :label="arg" dense size="sm" class="q-mr-sm arg-input" />
+      </div>
+      <div class="q-mt-md flex row justify-start">
+        <q-btn @click="run" size="sm" class="q-mr-sm" >
+          <q-icon name="fa-solid fa-play" class="q-mr-sm" />
+          Run
+        </q-btn>
+        <q-btn @click="run" size="sm">
+          <q-icon name="fa-solid fa-save" class="q-mr-sm" />
+          Save
+        </q-btn>
+      </div>
+    </div>
+  </div>
+  <div class="q-mt-lg" v-if="lastTaskId">
+    <div class="text q-px-xl q-mb-md">
+      Logs
+    </div>
+    <task-logs :task-id="lastTaskId" />
+  </div>
   </q-page>
 </template>
 <script>
@@ -22,7 +45,7 @@ import TaskLogs from '../components/TaskLogs.vue';
 MonacoEditor.render = () => h('div');
 
 export default {
-  name: "NewDynamicScraperPage",
+  name: "ScraperIde",
   components: { MonacoEditor, TaskLogs },
   data() {
     return {
@@ -49,7 +72,11 @@ async def handler(ctx: ScraperContextABC, start_url: str) -> str:
         automaticLayout: true
       },
       lastTaskId: null,
+      args: {}
     }
+  },
+  created() {
+    this.parseArgs();
   },
   computed: {
     theme() {
@@ -60,6 +87,7 @@ async def handler(ctx: ScraperContextABC, start_url: str) -> str:
     updateCode(event) {
       if (typeof event === 'string' || event instanceof String) {
         this.code = event;
+        this.parseArgs();
       }
     },
     run() {
@@ -67,15 +95,30 @@ async def handler(ctx: ScraperContextABC, start_url: str) -> str:
         {
           params: {
             source_code: this.code,
-            args: ["https://vk.com"],
+            args: Object.values(this.args),
           },
         },
         "dynamic_scraper",
         1,
       ).then((resp) => {
-        console.log(resp);
         this.lastTaskId = resp.id;
       });
+    },
+    parseArgs() {
+      const args = /async def handler\(ctx[^,]+,(?<args>[^\)]+)\)/gm.exec(this.code);
+        if (args && args.length > 0) {
+          const parsedArgs = args.groups.args.split(",").map(a => a.split(":")[0].trim()).filter(a => a.length > 0);
+          Object.keys(this.args).forEach(a => {
+            if (!parsedArgs.includes(a)) {
+              delete this.args[a];
+            }
+          });
+          parsedArgs.forEach(a => {
+            if (!(a in this.args)) {
+              this.args[a] = "";
+            }
+          });
+        }
     }
   }
 };
@@ -85,5 +128,8 @@ async def handler(ctx: ScraperContextABC, start_url: str) -> str:
   width: 100%;
   height: 600px;
   padding-top: 15px;
+}
+.arg-input {
+  width: 100%;
 }
 </style>
