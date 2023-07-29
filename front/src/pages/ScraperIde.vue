@@ -1,40 +1,36 @@
 <template>
-  <q-page class="flex flex-top column q-py-md">
-    <div class="text-h6 q-px-xl flex row">
-      Scraper IDE
-    </div>
-    <q-separator />
-  <MonacoEditor :value="code" @change="updateCode" language="python" :theme="theme" :options="options" class="editor" />
-  <q-separator class="q-mt-lg q-mb-sm" />
-  <div>
-    <div class="text-h6 q-px-xl flex row">
-      Debugger
-    </div>
-    <div class="flex column q-px-xl" v-if="args && Object.keys(args).length > 0">
-      <div class="text">
-        Session arguments
+  <q-page class="flex flex-top column">
+    <MonacoEditor :value="code" @change="updateCode" language="python" :theme="theme" :options="options" class="editor" />
+    <q-separator class="q-mt-lg q-mb-sm" />
+    <div>
+      <div class="text-h6 q-px-xl flex row">
+        Debugger
       </div>
-      <div v-for="arg in Object.keys(args)" :key="arg" class="flex row items-baseline">
-        <q-input v-model="args[arg]" :label="arg" dense size="sm" class="q-mr-sm arg-input" />
-      </div>
-      <div class="q-mt-md flex row justify-start">
-        <q-btn @click="run" size="sm" class="q-mr-sm" >
-          <q-icon name="fa-solid fa-play" class="q-mr-sm" />
-          Run
-        </q-btn>
-        <q-btn @click="run" size="sm">
-          <q-icon name="fa-solid fa-save" class="q-mr-sm" />
-          Save
-        </q-btn>
+      <div class="flex column q-px-xl" v-if="args && Object.keys(args).length > 0">
+        <div class="text">
+          Session arguments
+        </div>
+        <div v-for="arg in Object.keys(args)" :key="arg" class="flex row items-baseline">
+          <q-input v-model="args[arg]" :label="arg" dense size="sm" class="q-mr-sm arg-input" />
+        </div>
+        <div class="q-mt-md flex row justify-start">
+          <q-btn @click="run" size="sm" class="q-mr-sm" >
+            <q-icon name="fa-solid fa-play" class="q-mr-sm" />
+            Run
+          </q-btn>
+          <q-btn @click="run" size="sm">
+            <q-icon name="fa-solid fa-save" class="q-mr-sm" />
+            Save
+          </q-btn>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="q-mt-lg" v-if="lastTaskId">
-    <div class="text q-px-xl q-mb-md">
-      Logs
+    <div class="q-mt-lg" v-if="lastTaskId">
+      <div class="text q-px-xl q-mb-md">
+        Logs
+      </div>
+      <task-logs :task-id="lastTaskId" />
     </div>
-    <task-logs :task-id="lastTaskId" />
-  </div>
   </q-page>
 </template>
 <script>
