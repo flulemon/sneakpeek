@@ -9,7 +9,5 @@ dist
 htmlcov
 demo
 coverage.xml
-sneakpeek/static/docs/**
-sneakpeek/static/ui/**
 !/**/.gitkeep
 logs
