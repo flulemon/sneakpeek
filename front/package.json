@@ -1,6 +1,6 @@
 {
   "name": "sneakpeek-front",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "A toolbox to create scrapers",
   "productName": "Sneakpeek",
   "author": "Dan Yazovsky <daniil.yazovsky@gmail.com>",
