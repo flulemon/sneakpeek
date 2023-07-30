@@ -1,131 +1,119 @@
 <template>
-  <q-page class="flex flex-top column">
-    <MonacoEditor :value="code" @change="updateCode" language="python" :theme="theme" :options="options" class="editor" />
-    <q-separator class="q-mt-lg q-mb-sm" />
-    <div>
-      <div class="text-h6 q-px-xl flex row">
-        Debugger
-      </div>
-      <div class="flex column q-px-xl" v-if="args && Object.keys(args).length > 0">
-        <div class="text">
-          Session arguments
-        </div>
-        <div v-for="arg in Object.keys(args)" :key="arg" class="flex row items-baseline">
-          <q-input v-model="args[arg]" :label="arg" dense size="sm" class="q-mr-sm arg-input" />
-        </div>
-        <div class="q-mt-md flex row justify-start">
-          <q-btn @click="run" size="sm" class="q-mr-sm" >
-            <q-icon name="fa-solid fa-play" class="q-mr-sm" />
-            Run
-          </q-btn>
-          <q-btn @click="run" size="sm">
-            <q-icon name="fa-solid fa-save" class="q-mr-sm" />
-            Save
-          </q-btn>
-        </div>
-      </div>
-    </div>
-    <div class="q-mt-lg" v-if="lastTaskId">
-      <div class="text q-px-xl q-mb-md">
-        Logs
-      </div>
-      <task-logs :task-id="lastTaskId" />
-    </div>
+  <q-page>
+    <scraper-ide-component v-model="draftScraper.config" :enable-save-btn="true" @save="onSave" />
+    <q-dialog v-model="showSaveDialog">
+      <q-card class="save-dialog">
+        <q-card-section>
+          <div class="text-h6">Save Scraper</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-input v-model="draftScraper.name" label="Name" dense />
+          <q-select v-model="draftScraper.schedule" label="Schedule" :options="schedules" dense class="q-pt-md" />
+          <q-input v-model="draftScraper.schedule_crontab" label="Crontab" v-if="draftScraper.schedule === 'crontab'" dense class="q-pt-md" />
+          <q-select v-model="draftScraper.priority" label="Priority" :options="priorities" dense class="q-pt-md" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel"  v-close-popup />
+          <q-btn label="Save" color="positive" :loading="saveLoading" @click="saveScraper" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 <script>
-import { h } from 'vue';
-import MonacoEditor from 'vue-monaco';
-import { runEphemeralScraperTask } from '../api';
-import TaskLogs from '../components/TaskLogs.vue';
-MonacoEditor.render = () => h('div');
+import { format } from 'quasar';
+import { createScraper, getPriorities, getSchedules } from "../api.js";
+import ScraperIdeComponent from '../components/ScraperIdeComponent.vue';
+
+const { capitalize } = format;
 
 export default {
   name: "ScraperIde",
-  components: { MonacoEditor, TaskLogs },
+  components: { ScraperIdeComponent },
   data() {
     return {
-      code: `
-# Define the code for the scraper logic here
-import logging
-
-from pydantic import BaseModel
-from sneakpeek.scraper.model import ScraperContextABC
-
-
-# Scraper must define 'handler' function. Consider it to be the 'main' function of the scraper.
-# All of the arguments (except the first 'ctx') will be passed using scraper config's 'args' or 'kwargs'
-async def handler(ctx: ScraperContextABC, start_url: str) -> str:
-    logging.info(f"Downloading {start_url}")
-    response = await ctx.get(start_url)
-    content = await response.text()
-    logging.info(f"Received {content[:50]}")
-    return {
-        "success": True,
-        "content": content
-    }`,
-      options: {
-        automaticLayout: true
+      loading: false,
+      error: false,
+      showSaveDialog: false,
+      draftScraper: {
+        name: "",
+        schedule: "inactive",
+        priority: 0,
+        handler: "dynamic_scraper",
+        config: {}
       },
-      lastTaskId: null,
-      args: {}
+      schedules: [],
+      priorities: [],
+      saveLoading: false,
     }
   },
   created() {
-    this.parseArgs();
-  },
-  computed: {
-    theme() {
-      return this.$q.dark.isActive ? "vs-dark": "vs";
-    }
+    this.loading = true;
+    Promise.all([
+      getSchedules().then(data => this.schedules = data.map(this.makeScheduleOption)),
+      getPriorities().then(data => this.priorities = data.map(this.makePriorityOption)),
+    ])
+    .then(this.prettifyScraperParamsLabels)
+    .catch((error) => this.$q.notify({
+      message: `Error occured, plese refresh the page: ${error}`,
+      color: "negative",
+    }))
+    .finally(() => this.loading = false);
   },
   methods: {
-    updateCode(event) {
-      if (typeof event === 'string' || event instanceof String) {
-        this.code = event;
-        this.parseArgs();
+    makeScheduleOption(item) {
+      return {
+        label: item.split("_").map(capitalize).join(" "),
+        value: item,
+      };
+    },
+    makePriorityOption(item) {
+      return {
+        label: capitalize(item.name),
+        value: item.value,
+      };
+    },
+    onSave(config) {
+      this.draftScraper.config = config;
+      this.prettifyScraperParamsLabels();
+      this.showSaveDialog = true;
+    },
+    prettifyScraperParamsLabels() {
+      const schedule = this.schedules.filter(x => x.value === this.draftScraper.schedule)[0];
+      this.draftScraper.schedule = schedule || this.draftScraper.schedule;
+
+      const priority = this.priorities.filter(x => x.value === this.draftScraper.priority)[0];
+      this.draftScraper.priority = priority || this.draftScraper.priority;
+    },
+    saveScraper() {
+      const payload = {
+        name: this.draftScraper.name,
+        handler: this.draftScraper.handler,
+        schedule: this.draftScraper.schedule.value || this.draftScraper.schedule,
+        priority: this.draftScraper.priority.value == 0 ? 0 : (this.draftScraper.priority.value || this.draftScraper.priority),
+        schedule_crontab: this.draftScraper.schedule_crontab,
+        config: this.draftScraper.config,
       }
-    },
-    run() {
-      runEphemeralScraperTask(
-        {
-          params: {
-            source_code: this.code,
-            args: Object.values(this.args),
-          },
-        },
-        "dynamic_scraper",
-        1,
-      ).then((resp) => {
-        this.lastTaskId = resp.id;
-      });
-    },
-    parseArgs() {
-      const args = /async def handler\(ctx[^,]+,(?<args>[^\)]+)\)/gm.exec(this.code);
-        if (args && args.length > 0) {
-          const parsedArgs = args.groups.args.split(",").map(a => a.split(":")[0].trim()).filter(a => a.length > 0);
-          Object.keys(this.args).forEach(a => {
-            if (!parsedArgs.includes(a)) {
-              delete this.args[a];
-            }
+      this.saveLoading = true;
+      createScraper(payload)
+        .then((result) => {
+          this.$q.notify({
+            message: `Successfully created new scraper`,
+            color: "positive",
           });
-          parsedArgs.forEach(a => {
-            if (!(a in this.args)) {
-              this.args[a] = "";
-            }
-          });
-        }
+          this.$router.push({ name: 'ScraperPage', params: {id: result.id }});
+        })
+        .catch(error => this.$q.notify({
+            message: `Failed to create new scraper: ${error}`,
+            color: "negative",
+          }))
+        .finally(() => this.saveLoading = false);
     }
   }
 };
 </script>
 <style>
-.editor {
-  width: 100%;
-  height: 600px;
-  padding-top: 15px;
-}
-.arg-input {
-  width: 100%;
+.save-dialog {
+  min-width: 500px;
 }
 </style>

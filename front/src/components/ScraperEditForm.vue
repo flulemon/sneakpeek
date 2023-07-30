@@ -6,7 +6,8 @@
     <q-input v-model="draftScraper.schedule_crontab" label="Crontab" v-if="draftScraper.schedule === 'crontab'" :readonly="isReadOnly" />
     <q-select v-model="draftScraper.priority" label="Priority" :options="priorities" :readonly="isReadOnly" />
     <q-select v-model="draftScraper.handler" label="Handler" :options="handlers" :readonly="isReadOnly" />
-    <JsonEditorVue v-model="draftScraper.config" mode="text" :mainMenuBar="false" :statusBar="false"
+    <scraper-ide-component v-model="draftScraper.config" v-if="draftScraper.handler === 'dynamic_scraper'" />
+    <JsonEditorVue v-else v-model="draftScraper.config" mode="text" :mainMenuBar="false" :statusBar="false"
                     class="q-py-md" :class="$q.dark.isActive ? 'jse-theme-dark': ''" :readOnly="isReadOnly" />
     <div class="flex justify-end">
       <q-btn class="q-mr-sm" icon="fa-solid fa-trash" label="Delete" size="sm" color="negative"
@@ -34,12 +35,13 @@ import { extend, format } from 'quasar';
 import useQuasar from 'quasar/src/composables/use-quasar.js';
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css';
 import { createScraper, deleteScraper, getPriorities, getSchedules, getScraperHandlers, isReadOnly, updateScraper } from "../api.js";
+import ScraperIdeComponent from './ScraperIdeComponent.vue';
 
 const { capitalize } = format;
 
 export default {
   name: "ScraperEditForm",
-  components: {JsonEditorVue},
+  components: {JsonEditorVue, ScraperIdeComponent},
   props: ["modelValue"],
   emits: ['update:modelValue'],
   data() {
@@ -75,7 +77,7 @@ export default {
   },
   created() {
     isReadOnly().then(result => {this.isReadOnly = result;});
-    this.draftScraper = this.modelValue || this.defaultScraper;
+    this.draftScraper = this.modelValue || JSON.parse(JSON.stringify(this.defaultScraper));
     this.mode = this.draftScraper.id == null ? 'new' : 'edit';
     this.loading = true;
     Promise.all([
@@ -84,14 +86,17 @@ export default {
       getPriorities().then(data => this.priorities = data.map(this.makePriorityOption)),
     ])
     .then(this.prettifyScraperParamsLabels)
-    .catch((error => this.error = error))
+    .catch((error) => this.$q.notify({
+      message: `Error occured, plese refresh the page: ${error}`,
+      color: "negative",
+    }))
     .finally(() => this.loading = false);
   },
   watch: {
     modelValue: {
       deep: true,
       handler(val) {
-        this.draftScraper = extend(true, {}, val || this.defaultScraper);
+        this.draftScraper = extend(true, {}, val || JSON.parse(JSON.stringify(this.defaultScraper)));
         this.prettifyScraperParamsLabels();
       }
     }

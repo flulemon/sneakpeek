@@ -1,32 +1,25 @@
 <template>
-  <q-virtual-scroll
-      type="table"
-      style="max-height: 70vh; max-width: 100%;"
-      :virtual-scroll-item-size="48"
-      :virtual-scroll-sticky-size-start="48"
-      :virtual-scroll-sticky-size-end="32"
-      :items="logs"
-      v-slot="{ item: row, index }"
-    >
-    <tr :key="index">
-      <td v-for="col in columns" :key="index + '-' + col" class="log-column">
-        <div class="log-column" :style="`width: ${col.width}; min-width: ${col.minWidth}`" @click="expand(row.id)">
-          {{ expanded(row.id) ? row.data[col.key] : row.data[col.key].slice(0, 100) }}
-        </div>
-      </td>
-    </tr>
-  </q-virtual-scroll>
+  <MonacoEditor :value="logs" language="plaintext" :theme="theme" :options="options" class="editor" />
 </template>
 <script>
+import { h } from 'vue';
+import MonacoEditor from 'vue-monaco';
 import { getTaskLogs } from '../api';
+MonacoEditor.render = () => h('div');
 
 export default {
   name: "TaskLogs",
   props: ["taskId"],
+  components: { MonacoEditor },
   data() {
     return {
+      options: {
+        automaticLayout: true,
+        readOnly: true,
+        domReadOnly: true,
+      },
       lastLogLine: "",
-      logs: [],
+      logs: "",
       maxLinesToFetch: 100,
       columns: [
         {key: "asctime", width: "calc(20%)", minWidth: "200px"},
@@ -36,6 +29,11 @@ export default {
       logUpdateTask: null,
       expandedItems: {},
     };
+  },
+  computed: {
+    theme() {
+      return this.$q.dark.isActive ? "vs-dark": "vs";
+    }
   },
   watch: {
     taskId() {
@@ -58,7 +56,7 @@ export default {
         this.logUpdateTask = null;
       }
       this.lastLogLine = "";
-      this.logs = [];
+      this.logs = "";
     },
     getLogs() {
       if (this.taskId) {
@@ -67,7 +65,10 @@ export default {
           this.lastLogLine,
           this.maxLinesToFetch
         ).then(resp => {
-          this.logs = resp;
+          if (resp.length > 0) {
+            this.logs += "\n" + resp.map(x => `${x.data['asctime']} - ${x.data['levelname']} - ${x.data['msg']}`).join("\n");
+            this.lastLogLine = resp[resp.length-1].id;
+          }
           setTimeout(this.getLogs, 1000);
         });
       }
@@ -89,8 +90,8 @@ export default {
 }
 </script>
 <style>
-.log-column {
-  white-space: break-spaces;
-  word-break: break-all;
+.editor {
+  width: 100%;
+  height: 600px;
 }
 </style>

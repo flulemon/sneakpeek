@@ -101,7 +101,7 @@ class FileLoggerHandler(SessionLogger):
         with open(path, "r") as f:
             return [
                 LogLine(
-                    id=last_log_line_id + line_num,
+                    id=last_log_line_id + line_num + 1,
                     data=json.loads(line),
                 )
                 for line_num, line in enumerate(

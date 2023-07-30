@@ -1,34 +1,24 @@
 <template>
   <div>
-    <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
-      <div v-if="!error && !loading">
-        <div class="flex row q-mb-md">
-          <div class="text-h6">
-            {{ scraper.name }}
-          </div>
-          <q-space />
-          <div class="flex row">
-            <q-btn class="q-mr-sm" icon="fa-solid fa-play" label="Run" size="sm" color="positive"
-                   :loading="enqueueLoading" @click="enqueueRun" />
-            <q-btn :icon="showConfiguration ? 'fa-solid fa-chevron-up': 'fa-solid fa-chevron-down'"
-                  :label="showConfiguration ? 'Close config': 'Open config'"
-                  @click="showConfiguration = !showConfiguration"
-                  size="sm" color="secondary" class="text-black"  />
-          </div>
+    <div v-if="!error && !loading">
+      <div class="flex row q-mb-md">
+        <div class="text-h6">
+          {{ scraper.name }}
         </div>
-        <q-expansion-item v-model="showConfiguration" hide-expand-icon header-style="display: none;">
-          <scraper-edit-form v-model="scraper" />
-        </q-expansion-item>
-      </div>
-    </transition>
-    <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
-      <div v-if="error && !loading">
-        <div class="text-h6 text-center">
-          Failed to load scraper. Try to refresh. <br />
-          {{ error }}
+        <q-space />
+        <div class="flex row">
+          <q-btn class="q-mr-sm" icon="fa-solid fa-play" label="Run" size="sm" color="positive"
+                  :loading="enqueueLoading" @click="enqueueRun" />
         </div>
       </div>
-    </transition>
+      <scraper-edit-form v-model="scraper" />
+    </div>
+    <div v-if="error && !loading">
+      <div class="text-h6 text-center">
+        Failed to load scraper. Try to refresh. <br />
+        {{ error }}
+      </div>
+    </div>
     <q-inner-loading :showing="loading">
       <q-spinner-grid size="50px" color="primary" />
     </q-inner-loading>
@@ -50,7 +40,6 @@ export default {
       error: false,
       scraper: {},
       $q: useQuasar(),
-      showConfiguration: false,
       enqueueLoading: false,
     }
   },

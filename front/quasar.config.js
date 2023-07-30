@@ -31,7 +31,7 @@ module.exports = configure(function (ctx) {
       },
       chainWebpack(chain) {
         chain.plugin("monaco-editor").use(MonacoWebpackPlugin, [{
-          languages: ["python"],
+          languages: ["python", "plaintext"],
           features: ["coreCommands", "find"],
         }]);
       },
