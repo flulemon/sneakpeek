@@ -27,7 +27,7 @@ module.exports = configure(function (ctx) {
       distDir: '../sneakpeek/static/ui/',
       vueRouterMode: 'hash',
       env: {
-        API_BASE_URL: ctx.dev ? 'http://localhost:8080/api/v1/jsonrpc' : '/api/v1/jsonrpc',
+        JSONRPC_ENDPOINT: ctx.dev ? 'http://localhost:8080/api/v1/jsonrpc' : '/api/v1/jsonrpc',
       },
       chainWebpack(chain) {
         chain.plugin("monaco-editor").use(MonacoWebpackPlugin, [{

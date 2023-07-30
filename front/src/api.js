@@ -2,7 +2,7 @@ import { SessionStorage } from 'quasar';
 
 function rpc(method, params) {
   return fetch(
-    "http://localhost:8080/api/v1/jsonrpc",
+    process.env.JSONRPC_ENDPOINT || "/api/v1/jsonrpc",
     {
       method: "POST",
       headers: {
