@@ -1,33 +1,25 @@
 <template>
-  <MonacoEditor :value="logs" language="plaintext" :theme="theme" :options="options" class="editor" />
+  <q-infinite-scroll class="q-pa-sm bg-blue-grey-10">
+    <pre v-for="(item, index) in logs" :key="index" :class="`log-line q-pa-none q-ma-none text-${getLogLevelTextColor(item.data.levelname)}`"
+    >{{ item.data.asctime }}][{{ item.data.levelname.padEnd(8) }}] {{ item.data.msg }}</pre>
+  </q-infinite-scroll>
 </template>
 <script>
-import { h } from 'vue';
-import MonacoEditor from 'vue-monaco';
 import { getTaskLogs } from '../api';
-MonacoEditor.render = () => h('div');
 
 export default {
   name: "TaskLogs",
   props: ["taskId"],
-  components: { MonacoEditor },
   data() {
     return {
       options: {
-        automaticLayout: true,
         readOnly: true,
         domReadOnly: true,
       },
       lastLogLine: "",
-      logs: "",
+      logs: [],
       maxLinesToFetch: 100,
-      columns: [
-        {key: "asctime", width: "calc(20%)", minWidth: "200px"},
-        {key: "levelname", width: "calc(10%)", minWidth: "50px"},
-        {key: "msg", width: "calc(70%)"},
-      ],
       logUpdateTask: null,
-      expandedItems: {},
     };
   },
   computed: {
@@ -56,7 +48,7 @@ export default {
         this.logUpdateTask = null;
       }
       this.lastLogLine = "";
-      this.logs = "";
+      this.logs = [];
     },
     getLogs() {
       if (this.taskId) {
@@ -66,32 +58,33 @@ export default {
           this.maxLinesToFetch
         ).then(resp => {
           if (resp.length > 0) {
-            this.logs += "\n" + resp.map(x => `${x.data['asctime']} - ${x.data['levelname']} - ${x.data['msg']}`).join("\n");
+            this.logs = this.logs.concat(resp);
             this.lastLogLine = resp[resp.length-1].id;
           }
           setTimeout(this.getLogs, 1000);
         });
       }
     },
-    expand(id) {
-      if (id in this.expandedItems) {
-        this.expandedItems[id] = !this.expandedItems[id];
-      } else {
-        this.expandedItems[id] = true;
+    getLogLevelTextColor(level) {
+      switch(level) {
+        case "CRITICAL": return "deep-purple-5";
+        case "ERROR": return "red-14";
+        case "WARNING": return "amber-10";
+        default:
+          return "grey-5";
       }
-    },
-    expanded(id) {
-      if (id in this.expandedItems) {
-        return this.expandedItems[id];
-      }
-      return false;
     },
   }
 }
 </script>
 <style>
-.editor {
+.logs {
   width: 100%;
-  height: 600px;
+  max-height: 600px;
+  overflow: auto;
+}
+.log-line {
+  font-family: Consolas,Monaco,Andale Mono,Ubuntu Mono,monospace;
+  font-size: 14px;
 }
 </style>

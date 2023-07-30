@@ -13,7 +13,7 @@
           <q-select v-model="draftScraper.priority" label="Priority" :options="priorities" dense class="q-pt-md" />
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancel"  v-close-popup />
+          <q-btn flat label="Cancel" v-close-popup />
           <q-btn label="Save" color="positive" :loading="saveLoading" @click="saveScraper" />
         </q-card-actions>
       </q-card>

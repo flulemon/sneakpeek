@@ -1,46 +1,71 @@
 <template>
-  <q-table :rows="rows" :columns="columns"  class="full-height" title="Scraper jobs"
-           :rows-per-page-options="[0]" :loading="loading" virtual-scroll hide-bottom>
-    <template v-slot:body-cell-status="props">
-      <q-td :props="props">
-        <scraper-job-status-chip :value="props.value" size="sm" />
-      </q-td>
-    </template>
-    <template v-slot:body-cell-priority="props">
-      <q-td :props="props">
-        <priority-chip :value="props.value" size="sm" />
-      </q-td>
-    </template>
-    <template v-slot:body-cell-timeline="props">
-      <q-td :props="props">
-        <div class="column">
-          <div class="row" v-if="props.value.status == 'pending'">
-            <div class="text-weight-bold">Created:&nbsp;</div>
-            <div>{{ formatDate(props.value.created_at) }} ({{getRelativeDate(props.value.created_at)}})</div>
-          </div>
-          <div v-else-if="props.value.status == 'started'" class="column">
-            <div class="row">
-              <div class="text-weight-bold">Started:&nbsp;</div>
-              <div>{{ formatDate(props.value.started_at) }} ({{getRelativeDate(props.value.started_at)}})</div>
+  <div>
+    <q-table :rows="rows" :columns="columns"  class="full-height" title="Scraper jobs"
+            :rows-per-page-options="[0]" :loading="loading" virtual-scroll hide-bottom>
+      <template v-slot:body-cell-status="props">
+        <q-td :props="props">
+          <scraper-job-status-chip :value="props.value" size="sm" />
+        </q-td>
+      </template>
+      <template v-slot:body-cell-priority="props">
+        <q-td :props="props">
+          <priority-chip :value="props.value" size="sm" />
+        </q-td>
+      </template>
+      <template v-slot:body-cell-timeline="props">
+        <q-td :props="props">
+          <div class="column">
+            <div class="row" v-if="props.value.status == 'pending'">
+              <div class="text-weight-bold">Created:&nbsp;</div>
+              <div>{{ formatDate(props.value.created_at) }} ({{getRelativeDate(props.value.created_at)}})</div>
             </div>
-            <div class="row">
-              <div class="text-weight-bold">Last active:&nbsp;</div>
-              <div>{{ formatDate(props.value.last_active_at) }} ({{getRelativeDate(props.value.last_active_at)}})</div>
+            <div v-else-if="props.value.status == 'started'" class="column">
+              <div class="row">
+                <div class="text-weight-bold">Started:&nbsp;</div>
+                <div>{{ formatDate(props.value.started_at) }} ({{getRelativeDate(props.value.started_at)}})</div>
+              </div>
+              <div class="row">
+                <div class="text-weight-bold">Last active:&nbsp;</div>
+                <div>{{ formatDate(props.value.last_active_at) }} ({{getRelativeDate(props.value.last_active_at)}})</div>
+              </div>
+            </div>
+            <div class="row" v-else>
+              <div class="text-weight-bold">Finished:&nbsp;</div>
+              <div>{{ formatDate(props.value.finished_at) }} ({{getRelativeDate(props.value.finished_at)}})</div>
             </div>
           </div>
-          <div class="row" v-else>
-            <div class="text-weight-bold">Finished:&nbsp;</div>
-            <div>{{ formatDate(props.value.finished_at) }} ({{getRelativeDate(props.value.finished_at)}})</div>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-result="props">
+        <q-td :props="props">
+          <pre class="job-result">{{ formatResult(props.value) }}</pre>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props">
+          <q-btn size="sm" class="q-mr-sm" @click="showLogs(props.value.id)">
+            <q-icon name="fa-solid fa-file-lines" class="q-mr-sm" />
+            Logs
+          </q-btn>
+        </q-td>
+      </template>
+    </q-table>
+    <q-dialog v-model="showLogsDialog">
+      <q-card class="task-logs-card q-mb-none q-mx-none">
+        <div class="flex row justify-between align-center q-px-md q-pt-md q-pb-none">
+          <div class="text-h6">
+            Task logs
           </div>
+          <q-btn flat size="sm" v-close-popup>
+            <q-icon name="fa-solid fa-close" />
+          </q-btn>
         </div>
-      </q-td>
-    </template>
-    <template v-slot:body-cell-result="props">
-      <q-td :props="props">
-        <pre class="job-result">{{ formatResult(props.value) }}</pre>
-      </q-td>
-    </template>
-  </q-table>
+        <q-card-section class="q-pa-none q-mb-none q-mx-none">
+          <task-logs :taskId="selectedScraperTask" />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
 
 <script>
@@ -48,9 +73,10 @@ import { date } from 'quasar';
 import { getScraperJobs } from "../api.js";
 import PriorityChip from './PriorityChip.vue';
 import ScraperJobStatusChip from './ScraperJobStatusChip.vue';
+import TaskLogs from './TaskLogs.vue';
 
 export default {
-  components: { ScraperJobStatusChip, PriorityChip },
+  components: { ScraperJobStatusChip, PriorityChip, TaskLogs },
   name: 'ScraperRuns',
   props: ['id'],
   data() {
@@ -64,9 +90,12 @@ export default {
         { name: "priority", label: "Priority", field: "priority", align: "center" },
         { name: "timeline", label: "Timeline", field: row => row, align: "center" },
         { name: "result", label: "Result", field: "result", align: "center" },
+        { name: "actions", label: "Actions", field: row => row, align: "center" },
       ],
       loader: null,
       loadingInBackground: false,
+      showLogsDialog: false,
+      selectedScraperTask: null,
     }
   },
   created() {
@@ -134,6 +163,10 @@ export default {
       }
       this.loadJobs();
       setTimeout(this.loadJobsInBackground, 1000);
+    },
+    showLogs(id) {
+      this.selectedScraperTask = id;
+      this.showLogsDialog = true;
     }
   }
 }
@@ -141,7 +174,10 @@ export default {
 <style scoped>
 .job-result {
   max-width: 400px;
-  text-wrap: wrap;
+  white-space: break-spaces;
   text-align: start;
+}
+.task-logs-card {
+  min-width: 900px;
 }
 </style>

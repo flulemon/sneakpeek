@@ -3,11 +3,8 @@
     <MonacoEditor :value="code" @change="updateCode" class="editor"
                   language="python" :theme="theme" :options="options" />
     <div class="q-mt-md">
-      <div class="text-h6 q-px-xl flex row">
-        Debugger
-      </div>
       <div class="flex column q-px-xl" v-if="args && Object.keys(args).length > 0">
-        <div class="text">
+        <div class="text-h6">
           Session arguments
         </div>
         <div v-for="arg in Object.keys(args)" :key="arg" class="flex row items-baseline">
@@ -15,8 +12,8 @@
         </div>
         <div class="q-mt-md flex row justify-start">
           <q-btn @click="run" size="sm" class="q-mr-sm" >
-            <q-icon name="fa-solid fa-play" class="q-mr-sm" :loading="runLoading" />
-            Run
+            <q-icon name="fa-solid fa-bug" class="q-mr-sm" :loading="runLoading" />
+            Debug
           </q-btn>
           <q-btn size="sm" class="q-mr-sm" v-if="enableSaveBtn" @click="() => $emit('save', this.scraperConfig)">
             <q-icon name="fa-solid fa-save" class="q-mr-sm" />
@@ -25,8 +22,8 @@
         </div>
       </div>
     </div>
-    <div class="q-my-lg" v-if="lastTaskId">
-      <div class="text q-px-xl">
+    <div class="q-mt-lg" v-if="lastTaskId">
+      <div class="text-h6 q-px-xl">
         Logs
       </div>
       <task-logs :task-id="lastTaskId" />
