@@ -1,8 +1,6 @@
 const { configure } = require('quasar/wrappers');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
-
-
 module.exports = configure(function (ctx) {
   return {
     eslint: {
@@ -29,12 +27,13 @@ module.exports = configure(function (ctx) {
       env: {
         JSONRPC_ENDPOINT: ctx.dev ? 'http://localhost:8080/api/v1/jsonrpc' : '/api/v1/jsonrpc',
       },
-      chainWebpack(chain) {
-        chain.plugin("monaco-editor").use(MonacoWebpackPlugin, [{
-          languages: ["python", "plaintext"],
-          features: ["coreCommands", "find"],
-        }]);
-      },
+      chainWebpack: config => {
+        config.plugin('monaco-editor').use(MonacoWebpackPlugin, [
+          {
+            languages: ['python', 'javascript', 'html', 'xml']
+          }
+        ])
+      }
     },
     devServer: {
       open: true

@@ -28,6 +28,9 @@ $(JS_INSTALL_STAMP): front/package.json front/yarn.lock
 
 install: install-py install-js ##Install all dependencies
 
+gen-requirements: $(PY_INSTALL_STAMP)
+	$(POETRY) export --without-hashes --format=requirements.txt > requirements.txt
+
 .PHONY: test
 test: $(PY_INSTALL_STAMP) ##Run tests
 	$(POETRY) run pytest -n 20

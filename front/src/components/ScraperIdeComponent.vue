@@ -1,7 +1,8 @@
 <template>
   <div class="flex flex-top column" style="width: 100%;">
     <MonacoEditor :value="code" @change="updateCode" class="editor"
-                  language="python" :theme="theme" :options="options" />
+    language="python"
+    :theme="theme" :options="options" />
     <div class="q-mt-md">
       <div class="flex column q-px-xl" v-if="args && Object.keys(args).length > 0">
         <div class="text-h6">
@@ -31,8 +32,8 @@
   </div>
 </template>
 <script>
+import MonacoEditor from 'monaco-editor-vue3';
 import { h } from 'vue';
-import MonacoEditor from 'vue-monaco';
 import { runEphemeralScraperTask } from '../api';
 import TaskLogs from '../components/TaskLogs.vue';
 MonacoEditor.render = () => h('div');
@@ -64,7 +65,7 @@ async def handler(ctx: ScraperContextABC, start_url: str) -> str:
         "content": content[:50]
     }`,
       options: {
-        // automaticLayout: true,
+        automaticLayout: true,
       },
       lastTaskId: null,
       args: {},
