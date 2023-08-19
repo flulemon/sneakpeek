@@ -19,6 +19,8 @@ DEFAULT_DEAD_TIMEOUT = timedelta(minutes=5)
 
 
 class Queue(QueueABC):
+    """Queue implementation"""
+
     def __init__(
         self,
         storage: QueueStorageABC,

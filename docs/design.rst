@@ -72,7 +72,7 @@ Queue consumer
 ================
 
 Consumer constantly tries to dequeue a job and executes dequeued jobs.
-As for now there's only one implementation :py:class:`Worker <sneakpeek.queue.consumer.Consumer>`.
+As for now there's only one implementation :py:class:`Consumer <sneakpeek.queue.consumer.Consumer>`.
 
 
 ================

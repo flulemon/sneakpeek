@@ -35,6 +35,10 @@ task_executed = Counter(
 
 
 class Consumer:
+    """
+    Generic queue consumer implementation
+    """
+
     def __init__(
         self,
         queue: QueueABC,
@@ -44,6 +48,15 @@ class Consumer:
         poll_delay: timedelta = POLL_DELAY,
         ping_delay: timedelta = TASK_PING_DELAY,
     ) -> None:
+        """
+        Args:
+            queue (QueueABC): Queue implementation
+            handlers (list[TaskHandlerABC]): List of the task handlers
+            loop (asyncio.AbstractEventLoop | None, optional): asyncio loop. Defaults to asyncio.get_event_loop().
+            max_concurrency (int, optional): Maximum number of concurrent tasks that a consumer can handle. Defaults to 50.
+            poll_delay (timedelta, optional): Delay between queue polling in case there are no items in the queue. Defaults to POLL_DELAY.
+            ping_delay (timedelta, optional): Task heartbeat frequency. Defaults to TASK_PING_DELAY.
+        """
         self.logger = logging.getLogger(__name__)
         self.queue = queue
         self.handlers = {handler.name(): handler for handler in handlers}
@@ -61,6 +74,15 @@ class Consumer:
 
     @count_invocations(subsystem="consumer")
     async def process_task(self, task: Task) -> None:
+        """Process dequeued task
+
+        Args:
+            task (Task): Dequeued Task
+
+        Raises:
+            UnknownTaskHandlerError: Raised when there's no handler for given task type
+            TaskTimedOut: Raised when a task has exceeded maximum process time
+        """
         delay_histogram.labels(type="time_spent_in_queue").observe(
             (datetime.utcnow() - task.created_at).total_seconds()
         )
@@ -111,7 +133,12 @@ class Consumer:
 
     @measure_latency(subsystem="consumer")
     @count_invocations(subsystem="consumer")
-    async def consume(self):
+    async def consume(self) -> bool:
+        """Consume from the queue
+
+        Returns:
+            bool: True if anything has been consumed, False otherwise
+        """
         replicas_gauge.labels(type="active_tasks").set(len(self.active))
         if len(self.active) >= self.max_concurrency:
             self.logger.debug(
@@ -137,10 +164,12 @@ class Consumer:
                 await asyncio.sleep(self.poll_delay)
 
     def start(self):
+        """Start consuming from the queue"""
         self.running = True
         self.cycle_task = self.loop.create_task(self._cycle())
 
     def stop(self):
+        """Stop consuming from the queue"""
         self.running = False
         if self.cycle_task:
             self.cycle_task.cancel()
